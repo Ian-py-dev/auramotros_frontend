@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { getApiBaseUrl } from '../../../lib/api-config';
 
 // --- Icons ---
 const BuildingIcon = () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>;
@@ -53,7 +54,7 @@ function DepartamentosTab() {
 
   const fetchDepts = async () => {
     try {
-      const res = await fetch('http://localhost:3000/api/departments', {
+      const res = await fetch(`${getApiBaseUrl()}/api/departments`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('aura_token')}` }
       });
       if (res.ok) {
@@ -89,13 +90,13 @@ function DepartamentosTab() {
     e.preventDefault();
     const token = localStorage.getItem('aura_token');
     if (editingDept) {
-      await fetch(`http://localhost:3000/api/departments/${editingDept.id}`, {
+      await fetch(`${getApiBaseUrl()}/api/departments/${editingDept.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(formData)
       });
     } else {
-      await fetch('http://localhost:3000/api/departments', {
+      await fetch(`${getApiBaseUrl()}/api/departments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(formData)
@@ -108,7 +109,7 @@ function DepartamentosTab() {
   const handleDelete = async (id?: number | string) => {
     if (!id) return;
     if (confirm('¿Estás seguro de eliminar este departamento?')) {
-      await fetch(`http://localhost:3000/api/departments/${id}`, {
+      await fetch(`${getApiBaseUrl()}/api/departments/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${localStorage.getItem('aura_token')}` }
       });
@@ -237,7 +238,7 @@ function ServiciosTab() {
 
   const fetchServices = async () => {
     try {
-      const res = await fetch('http://localhost:3000/api/service-types', {
+      const res = await fetch(`${getApiBaseUrl()}/api/service-types`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('aura_token')}` }
       });
       if (res.ok) {
@@ -268,13 +269,13 @@ function ServiciosTab() {
     const token = localStorage.getItem('aura_token');
     const payload = { ...formData, price: parseFloat(formData.price) };
     if (editingService) {
-      await fetch(`http://localhost:3000/api/service-types/${editingService.id}`, {
+      await fetch(`${getApiBaseUrl()}/api/service-types/${editingService.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload)
       });
     } else {
-      await fetch('http://localhost:3000/api/service-types', {
+      await fetch(`${getApiBaseUrl()}/api/service-types`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload)
@@ -286,7 +287,7 @@ function ServiciosTab() {
 
   const handleDelete = async (id: string) => {
     if (confirm('¿Estás seguro de eliminar este servicio?')) {
-      await fetch(`http://localhost:3000/api/service-types/${id}`, {
+      await fetch(`${getApiBaseUrl()}/api/service-types/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${localStorage.getItem('aura_token')}` }
       });
@@ -296,7 +297,7 @@ function ServiciosTab() {
 
   const toggleStatus = async (svc: ServiceTypeItem) => {
     const token = localStorage.getItem('aura_token');
-    await fetch(`http://localhost:3000/api/service-types/${svc.id}`, {
+    await fetch(`${getApiBaseUrl()}/api/service-types/${svc.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ status: svc.status === 'Activo' ? 'Inactivo' : 'Activo' })

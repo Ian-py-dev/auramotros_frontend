@@ -2,16 +2,19 @@
 
 export function getApiBaseUrl(): string {
   if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL;
+    return process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '');
   }
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
+    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+      return window.location.origin;
+    }
     return `http://${hostname}:3001`;
   }
   return 'http://localhost:3001';
 }
 
-export const API_BASE_URL = 'http://localhost:3001';
+export const API_BASE_URL = getApiBaseUrl();
 
 /**
  * Helper to perform safe fetch calls without throwing unhandled network errors if the backend is starting up or offline.
