@@ -214,15 +214,22 @@ export default function SurveysPage() {
     setIsTestingSmtp(false);
   };
 
-  const handleSendTestEmail = async () => {
+  const handleSendTestEmail = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!testEmailAddress.trim()) { showToast('Ingresa un correo de destino', 'error'); return; }
     setIsSendingTestEmail(true); setSmtpFeedback(null);
     const { ok, data, error: fetchErr } = await safeFetch<{ message: string }>('/surveys/smtp-config/send-test-email', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ targetEmail: testEmailAddress }),
+      body: JSON.stringify({ targetEmail: testEmailAddress.trim() }),
     });
-    if (ok && data) { setSmtpFeedback({ type: 'success', message: data.message }); showToast('Correo de prueba enviado'); }
-    else { setSmtpFeedback({ type: 'error', message: data?.message || fetchErr || 'Error al enviar correo de prueba' }); }
+    if (ok && data) {
+      setSmtpFeedback({ type: 'success', message: data.message });
+      showToast('¡Correo de prueba enviado con éxito!');
+    } else {
+      const msg = data?.message || fetchErr || 'Error al enviar correo de prueba';
+      setSmtpFeedback({ type: 'error', message: msg });
+      showToast(msg, 'error');
+    }
     setIsSendingTestEmail(false);
   };
 
