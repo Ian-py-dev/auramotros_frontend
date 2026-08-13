@@ -100,7 +100,15 @@ export default function LoginPage() {
       login(data.access_token, data.user);
       router.push('/dashboard');
     } else {
-      setLoginError(data?.message || errMessage || currentT.invalidCredentials);
+      let displayError = currentT.invalidCredentials;
+      if (data?.message) {
+        displayError = Array.isArray(data.message) ? data.message[0] : data.message;
+      } else if (errMessage && (errMessage.includes('401') || errMessage.includes('Unauthorized') || errMessage.includes('invalid') || errMessage.includes('credenciales'))) {
+        displayError = currentT.invalidCredentials;
+      } else if (errMessage && errMessage.toLowerCase().includes('inactiv')) {
+        displayError = 'Tu cuenta se encuentra inactiva. Por favor contacta al administrador.';
+      }
+      setLoginError(displayError);
     }
     setIsLoading(false);
   };
