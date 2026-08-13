@@ -343,18 +343,22 @@ export default function Home() {
         {/* --- HEADER (Liquid Glass Navigation Bar) --- */}
         <header className="liquid-glass" style={{
           position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
+          top: '0.6rem',
+          left: '50%',
+          transform: visible ? 'translateX(-50%) translateY(0)' : 'translateX(-50%) translateY(-140%)',
+          width: 'calc(100% - 1.5rem)',
+          maxWidth: '1280px',
           zIndex: 100,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          padding: isScrolled ? '0.75rem 5%' : '1.25rem 5%',
-          width: '100%',
-          transform: visible ? 'translateY(0)' : 'translateY(-100%)',
-          transition: 'transform 0.3s ease, padding 0.3s ease, background 0.3s ease',
-          boxShadow: isScrolled ? '0 10px 30px rgba(0,0,0,0.15)' : 'none',
+          padding: isScrolled ? '0.7rem 1.25rem' : '0.95rem 1.5rem',
+          borderRadius: '24px',
+          border: '1px solid var(--glass-border)',
+          backdropFilter: 'blur(25px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(25px) saturate(180%)',
+          transition: 'transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), padding 0.3s ease, background 0.3s ease',
+          boxShadow: isScrolled ? '0 16px 36px rgba(0,0,0,0.12)' : '0 8px 24px rgba(0,0,0,0.06)',
         }}>
           {/* Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
