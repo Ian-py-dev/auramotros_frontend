@@ -1,17 +1,19 @@
 // Centralized API Configuration & Dynamic Base URL Helper
 
 export function getApiBaseUrl(): string {
-  if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '');
+  let url = process.env.NEXT_PUBLIC_API_URL || '';
+  if (url) {
+    url = url.replace(/\/$/, '');
+    return url.endsWith('/api') ? url : `${url}/api`;
   }
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
     if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-      return window.location.origin;
+      return `${window.location.origin}/api`;
     }
-    return `http://${hostname}:3001`;
+    return `http://${hostname}:3001/api`;
   }
-  return 'http://localhost:3001';
+  return 'http://localhost:3001/api';
 }
 
 export const API_BASE_URL = getApiBaseUrl();
@@ -21,7 +23,14 @@ export const API_BASE_URL = getApiBaseUrl();
  */
 export async function safeFetch<T = unknown>(endpoint: string, options?: RequestInit): Promise<{ ok: boolean; data: T | null; error?: string }> {
   const baseUrl = getApiBaseUrl();
-  const url = endpoint.startsWith('http') ? endpoint : `${baseUrl}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
+  let cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  
+  // Prevent duplicate /api/api prefix
+  if (baseUrl.endsWith('/api') && cleanEndpoint.startsWith('/api/')) {
+    cleanEndpoint = cleanEndpoint.substring(4);
+  }
+
+  const url = endpoint.startsWith('http') ? endpoint : `${baseUrl}${cleanEndpoint}`;
   try {
     const response = await fetch(url, options);
     if (!response.ok) {
