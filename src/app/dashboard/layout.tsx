@@ -11,6 +11,7 @@ import {
   CarFront,
   Users2,
   ClipboardCheck,
+  CalendarRange,
   SlidersHorizontal,
   Sun,
   Moon,
@@ -129,6 +130,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       color: '#ec4899',
       badgeBg: 'rgba(236, 72, 153, 0.14)',
       glow: 'rgba(236, 72, 153, 0.35)'
+    },
+    {
+      label: 'Solicitudes A Domicilio',
+      path: '/dashboard/bookings',
+      permission: 'VIEW_TICKETS',
+      icon: CalendarRange,
+      color: '#0284c7',
+      badgeBg: 'rgba(2, 132, 199, 0.14)',
+      glow: 'rgba(2, 132, 199, 0.35)'
     },
     {
       label: 'Configuración',
