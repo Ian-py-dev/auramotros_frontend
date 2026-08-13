@@ -1,0 +1,31 @@
+{
+  "name": "frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
+    "liquid-gooey": "^0.1.0",
+    "lucide-react": "^1.31.0",
+    "mapbox-gl": "^3.8.0",
+    "next": "^15.0.3",
+    "react": "^19.0.0-rc-66a323b9-20241107",
+    "react-dom": "^19.0.0-rc-66a323b9-20241107",
+    "react-map-gl": "^7.1.7"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.6",
+    "@types/node": "^20.14.10",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "eslint": "^9.14.0",
+    "eslint-config-next": "^15.0.3",
+    "typescript": "^5.5.3"
+  }
+}
