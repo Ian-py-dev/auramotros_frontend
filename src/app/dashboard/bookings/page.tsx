@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { safeFetch } from '../../../lib/api-config';
 import { 
   CalendarRange, 
@@ -15,7 +15,9 @@ import {
   FileText,
   Search,
   Trash2,
-  RefreshCw
+  RefreshCw,
+  ExternalLink,
+  Navigation
 } from 'lucide-react';
 
 interface BookingRequest {
@@ -39,23 +41,33 @@ export default function BookingsPage() {
   const [filterStatus, setFilterStatus] = useState<'ALL' | 'PENDING' | 'ATTENDED'>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const prevCountRef = useRef<number | null>(null);
 
   const showToast = (text: string, type: 'success' | 'error' = 'success') => {
     setToastMessage({ text, type });
     setTimeout(() => setToastMessage(null), 4000);
   };
 
-  const fetchBookings = async () => {
-    setIsLoading(true);
+  const fetchBookings = async (showLoading = false) => {
+    if (showLoading) setIsLoading(true);
     const { ok, data } = await safeFetch<BookingRequest[]>('/booking-requests');
     if (ok && Array.isArray(data)) {
+      if (prevCountRef.current !== null && data.length > prevCountRef.current) {
+        showToast('🎉 ¡Nueva solicitud de cita a domicilio recibida en tiempo real! ✨', 'success');
+      }
+      prevCountRef.current = data.length;
       setBookings(data);
     }
-    setIsLoading(false);
+    if (showLoading) setIsLoading(false);
   };
 
   useEffect(() => {
-    fetchBookings();
+    fetchBookings(true);
+    // Real-time polling every 5 seconds
+    const interval = setInterval(() => {
+      fetchBookings(false);
+    }, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleMarkAsAttended = async (id: string) => {
@@ -67,7 +79,7 @@ export default function BookingsPage() {
 
     if (ok) {
       showToast('Solicitud marcada como ATENDIDA ✨');
-      fetchBookings();
+      fetchBookings(false);
     } else {
       showToast('Error al actualizar estatus de la solicitud', 'error');
     }
@@ -78,7 +90,7 @@ export default function BookingsPage() {
     const { ok } = await safeFetch(`/booking-requests/${id}`, { method: 'DELETE' });
     if (ok) {
       showToast('Solicitud eliminada');
-      fetchBookings();
+      fetchBookings(false);
     } else {
       showToast('Error al eliminar la solicitud', 'error');
     }
@@ -113,6 +125,13 @@ export default function BookingsPage() {
 
   return (
     <div style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto' }}>
+      <style>{`
+        @keyframes pulse-live {
+          0% { transform: scale(0.95); opacity: 0.7; }
+          50% { transform: scale(1.2); opacity: 1; }
+          100% { transform: scale(0.95); opacity: 0.7; }
+        }
+      `}</style>
       
       {/* Toast Notification */}
       {toastMessage && (
@@ -145,21 +164,44 @@ export default function BookingsPage() {
         gap: '1rem'
       }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
             <div style={{ padding: '0.6rem', borderRadius: '14px', background: 'rgba(2, 132, 199, 0.15)', color: '#38bdf8' }}>
               <CalendarRange size={24} />
             </div>
             <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
               Solicitudes de Citas a Domicilio
             </h1>
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              backgroundColor: 'rgba(239, 68, 68, 0.15)',
+              color: '#ef4444',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              padding: '0.3rem 0.75rem',
+              borderRadius: '20px',
+              fontSize: '0.75rem',
+              fontWeight: 800,
+              letterSpacing: '0.5px'
+            }}>
+              <span style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                backgroundColor: '#ef4444',
+                display: 'inline-block',
+                animation: 'pulse-live 1.5s infinite ease-in-out'
+              }} />
+              EN VIVO (Tiempo Real)
+            </span>
           </div>
           <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.95rem' }}>
-            Panel de control para atender las visitas técnicas programadas desde la página pública.
+            Panel de control y mapas en vivo para atender las visitas técnicas programadas desde la página pública.
           </p>
         </div>
 
         <button
-          onClick={fetchBookings}
+          onClick={() => fetchBookings(true)}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -282,12 +324,17 @@ export default function BookingsPage() {
         <div className="glass-card" style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
           <CalendarRange size={48} style={{ opacity: 0.4, marginBottom: '1rem' }} />
           <h3>No se encontraron solicitudes registradas</h3>
-          <p>Las solicitudes de citas agendadas por los clientes aparecerán aquí automáticamente.</p>
+          <p>Las solicitudes de citas agendadas por los clientes aparecerán aquí en tiempo real.</p>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {filteredBookings.map((booking) => {
             const overdue = isOverdue(booking.createdAt, booking.status);
+            const mapQuery = booking.address.trim();
+            const mapEmbedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+            const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`;
+            const wazeUrl = `https://waze.com/ul?q=${encodeURIComponent(mapQuery)}&navigate=yes`;
+
             return (
               <div
                 key={booking.id}
@@ -360,13 +407,72 @@ export default function BookingsPage() {
 
                 </div>
 
-                {/* Location / Address */}
-                <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '1rem 1.25rem', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#0284c7', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.35rem' }}>
-                    <MapPin size={16} /> Ubicación / Dirección a Domicilio:
+                {/* Location / Interactive Map Section */}
+                <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '1.25rem', borderRadius: '20px', border: '1px solid var(--glass-border)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#38bdf8', fontSize: '0.9rem', fontWeight: 800 }}>
+                      <MapPin size={18} /> Ubicación Exacta del Cliente:
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <a
+                        href={googleMapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                          padding: '0.4rem 0.8rem',
+                          borderRadius: '10px',
+                          backgroundColor: 'rgba(2, 132, 199, 0.15)',
+                          color: '#38bdf8',
+                          fontSize: '0.8rem',
+                          fontWeight: 700,
+                          textDecoration: 'none',
+                          border: '1px solid rgba(56, 189, 248, 0.3)'
+                        }}
+                      >
+                        <ExternalLink size={13} /> Google Maps
+                      </a>
+                      <a
+                        href={wazeUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                          padding: '0.4rem 0.8rem',
+                          borderRadius: '10px',
+                          backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                          color: '#60a5fa',
+                          fontSize: '0.8rem',
+                          fontWeight: 700,
+                          textDecoration: 'none',
+                          border: '1px solid rgba(96, 165, 250, 0.3)'
+                        }}
+                      >
+                        <Navigation size={13} /> Waze
+                      </a>
+                    </div>
                   </div>
-                  <div style={{ color: 'var(--text-primary)', fontSize: '0.95rem', wordBreak: 'break-word' }}>
+
+                  <div style={{ color: 'var(--text-primary)', fontSize: '0.95rem', fontWeight: 600, marginBottom: '0.75rem', wordBreak: 'break-word' }}>
                     {booking.address}
+                  </div>
+
+                  {/* Embedded Interactive Map */}
+                  <div style={{ borderRadius: '16px', overflow: 'hidden', border: '1px solid rgba(255, 255, 255, 0.12)', boxShadow: '0 8px 20px rgba(0,0,0,0.3)' }}>
+                    <iframe
+                      title={`Ubicación de ${booking.clientName}`}
+                      width="100%"
+                      height="240"
+                      style={{ border: 0, display: 'block' }}
+                      loading="lazy"
+                      allowFullScreen
+                      src={mapEmbedUrl}
+                    />
                   </div>
                 </div>
 
