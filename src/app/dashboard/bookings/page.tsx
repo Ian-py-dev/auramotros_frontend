@@ -25,6 +25,9 @@ interface BookingRequest {
   clientName: string;
   clientPhone: string;
   vehicle: string;
+  vehicleBrand?: string;
+  vehicleModel?: string;
+  vehicleYear?: string;
   serviceType: string;
   address: string;
   date: string;
@@ -393,7 +396,15 @@ export default function BookingsPage() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.8rem', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.35rem' }}>
                       <Car size={14} /> Vehículo y Servicio
                     </div>
-                    <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>{booking.vehicle}</div>
+                    <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                      {booking.vehicleBrand || booking.vehicleModel ? (
+                        <span>
+                          <span style={{ color: '#38bdf8' }}>{booking.vehicleBrand}</span> {booking.vehicleModel} <span style={{ color: '#94a3b8', fontSize: '0.9rem' }}>({booking.vehicleYear})</span>
+                        </span>
+                      ) : (
+                        booking.vehicle
+                      )}
+                    </div>
                     <div style={{ color: '#10b981', fontWeight: 600, fontSize: '0.9rem', marginTop: '0.25rem' }}>{booking.serviceType}</div>
                   </div>
 

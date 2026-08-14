@@ -31,7 +31,9 @@ export default function Home() {
   const [bookingForm, setBookingForm] = useState({
     name: '',
     phone: '',
-    vehicle: '',
+    vehicleBrand: '',
+    vehicleModel: '',
+    vehicleYear: '',
     serviceType: 'Mantenimiento Preventivo a Domicilio',
     address: '',
     date: '',
@@ -787,7 +789,9 @@ export default function Home() {
                       setBookingForm({
                         name: '',
                         phone: '',
-                        vehicle: '',
+                        vehicleBrand: '',
+                        vehicleModel: '',
+                        vehicleYear: '',
                         serviceType: 'Mantenimiento Preventivo a Domicilio',
                         address: '',
                         date: '',
@@ -812,18 +816,22 @@ export default function Home() {
                 <form onSubmit={async (e) => {
                   e.preventDefault();
                   setFormErrorMsg('');
-                  if (!bookingForm.name || !bookingForm.phone || !bookingForm.vehicle || !bookingForm.address) {
-                    setFormErrorMsg(currentT.formRequiredErr);
+                  if (!bookingForm.name || !bookingForm.phone || !bookingForm.vehicleBrand || !bookingForm.vehicleModel || !bookingForm.vehicleYear || !bookingForm.address) {
+                    setFormErrorMsg(lang === 'es' ? 'Por favor completa todos los campos requeridos, incluyendo Marca, Modelo y Año.' : 'Please fill in all required fields including Brand, Model and Year.');
                     return;
                   }
                   setIsSubmittingBooking(true);
+                  const combinedVehicle = `${bookingForm.vehicleBrand} ${bookingForm.vehicleModel} ${bookingForm.vehicleYear}`.trim();
                   const { ok, error: fetchErr } = await safeFetch('/booking-requests', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                       clientName: bookingForm.name,
                       clientPhone: bookingForm.phone,
-                      vehicle: bookingForm.vehicle,
+                      vehicle: combinedVehicle,
+                      vehicleBrand: bookingForm.vehicleBrand,
+                      vehicleModel: bookingForm.vehicleModel,
+                      vehicleYear: bookingForm.vehicleYear,
                       serviceType: bookingForm.serviceType,
                       address: bookingForm.address,
                       date: bookingForm.date || new Date().toLocaleDateString('es-MX'),
@@ -868,13 +876,14 @@ export default function Home() {
                         style={{
                           width: '100%',
                           padding: '0.9rem 1.2rem',
-                          borderRadius: '12px',
-                          border: theme === 'light' ? '1px solid #cbd5e1' : '1px solid rgba(56, 189, 248, 0.25)',
-                          backgroundColor: theme === 'light' ? '#f8fafc' : 'rgba(2, 6, 23, 0.7)',
+                          borderRadius: '14px',
+                          border: theme === 'light' ? '1px solid #cbd5e1' : '1px solid rgba(56, 189, 248, 0.3)',
+                          backgroundColor: theme === 'light' ? '#f8fafc' : 'rgba(15, 23, 42, 0.7)',
                           color: theme === 'light' ? '#0f172a' : '#ffffff',
                           fontSize: '1rem',
                           outline: 'none',
-                          boxSizing: 'border-box'
+                          boxSizing: 'border-box',
+                          backdropFilter: 'blur(10px)'
                         }}
                       />
                     </div>
@@ -893,46 +902,107 @@ export default function Home() {
                         style={{
                           width: '100%',
                           padding: '0.9rem 1.2rem',
-                          borderRadius: '12px',
-                          border: theme === 'light' ? '1px solid #cbd5e1' : '1px solid rgba(56, 189, 248, 0.25)',
-                          backgroundColor: theme === 'light' ? '#f8fafc' : 'rgba(2, 6, 23, 0.7)',
+                          borderRadius: '14px',
+                          border: theme === 'light' ? '1px solid #cbd5e1' : '1px solid rgba(56, 189, 248, 0.3)',
+                          backgroundColor: theme === 'light' ? '#f8fafc' : 'rgba(15, 23, 42, 0.7)',
                           color: theme === 'light' ? '#0f172a' : '#ffffff',
                           fontSize: '1rem',
                           outline: 'none',
-                          boxSizing: 'border-box'
+                          boxSizing: 'border-box',
+                          backdropFilter: 'blur(10px)'
                         }}
                       />
                     </div>
 
-                    {/* Vehículo */}
+                    {/* Marca del Vehículo */}
                     <div>
                       <label style={{ display: 'block', fontSize: '0.95rem', fontWeight: 700, color: theme === 'light' ? '#0f172a' : '#f8fafc', marginBottom: '0.6rem' }}>
-                        {currentT.formVehicle}
+                        🚗 {lang === 'es' ? 'Marca del Vehículo' : 'Vehicle Brand'}
                       </label>
                       <input
                         type="text"
                         required
-                        placeholder="Ej. Toyota Corolla 2022"
-                        value={bookingForm.vehicle}
-                        onChange={(e) => setBookingForm({ ...bookingForm, vehicle: e.target.value })}
+                        placeholder="Ej. Toyota, Honda, Ford, Nissan..."
+                        value={bookingForm.vehicleBrand}
+                        onChange={(e) => setBookingForm({ ...bookingForm, vehicleBrand: e.target.value })}
                         style={{
                           width: '100%',
                           padding: '0.9rem 1.2rem',
-                          borderRadius: '12px',
-                          border: theme === 'light' ? '1px solid #cbd5e1' : '1px solid rgba(56, 189, 248, 0.25)',
-                          backgroundColor: theme === 'light' ? '#f8fafc' : 'rgba(2, 6, 23, 0.7)',
+                          borderRadius: '14px',
+                          border: theme === 'light' ? '1px solid #cbd5e1' : '1px solid rgba(56, 189, 248, 0.3)',
+                          backgroundColor: theme === 'light' ? '#f8fafc' : 'rgba(15, 23, 42, 0.7)',
                           color: theme === 'light' ? '#0f172a' : '#ffffff',
                           fontSize: '1rem',
                           outline: 'none',
-                          boxSizing: 'border-box'
+                          boxSizing: 'border-box',
+                          backdropFilter: 'blur(10px)'
                         }}
                       />
+                    </div>
+
+                    {/* Modelo del Vehículo */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.95rem', fontWeight: 700, color: theme === 'light' ? '#0f172a' : '#f8fafc', marginBottom: '0.6rem' }}>
+                        🚘 {lang === 'es' ? 'Modelo del Vehículo' : 'Vehicle Model'}
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Ej. Corolla, Civic, Mustang, Hilux..."
+                        value={bookingForm.vehicleModel}
+                        onChange={(e) => setBookingForm({ ...bookingForm, vehicleModel: e.target.value })}
+                        style={{
+                          width: '100%',
+                          padding: '0.9rem 1.2rem',
+                          borderRadius: '14px',
+                          border: theme === 'light' ? '1px solid #cbd5e1' : '1px solid rgba(56, 189, 248, 0.3)',
+                          backgroundColor: theme === 'light' ? '#f8fafc' : 'rgba(15, 23, 42, 0.7)',
+                          color: theme === 'light' ? '#0f172a' : '#ffffff',
+                          fontSize: '1rem',
+                          outline: 'none',
+                          boxSizing: 'border-box',
+                          backdropFilter: 'blur(10px)'
+                        }}
+                      />
+                    </div>
+
+                    {/* Año del Vehículo */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.95rem', fontWeight: 700, color: theme === 'light' ? '#0f172a' : '#f8fafc', marginBottom: '0.6rem' }}>
+                        📅 {lang === 'es' ? 'Año del Vehículo' : 'Vehicle Year'}
+                      </label>
+                      <select
+                        required
+                        value={bookingForm.vehicleYear}
+                        onChange={(e) => setBookingForm({ ...bookingForm, vehicleYear: e.target.value })}
+                        style={{
+                          width: '100%',
+                          padding: '0.9rem 1.2rem',
+                          borderRadius: '14px',
+                          border: theme === 'light' ? '1px solid #cbd5e1' : '1px solid rgba(56, 189, 248, 0.3)',
+                          backgroundColor: theme === 'light' ? '#ffffff' : '#0f172a',
+                          color: theme === 'light' ? '#0f172a' : '#ffffff',
+                          fontSize: '1rem',
+                          outline: 'none',
+                          boxSizing: 'border-box',
+                          backdropFilter: 'blur(10px)'
+                        }}
+                      >
+                        <option value="" style={{ background: theme === 'light' ? '#ffffff' : '#0f172a', color: theme === 'light' ? '#0f172a' : '#ffffff' }}>
+                          {lang === 'es' ? '-- Selecciona el Año --' : '-- Select Year --'}
+                        </option>
+                        {Array.from({ length: 37 }, (_, i) => 2026 - i).map((y) => (
+                          <option key={y} value={String(y)} style={{ background: theme === 'light' ? '#ffffff' : '#0f172a', color: theme === 'light' ? '#0f172a' : '#ffffff' }}>
+                            {y}
+                          </option>
+                        ))}
+                      </select>
                     </div>
 
                     {/* Servicio Requerido */}
                     <div>
                       <label style={{ display: 'block', fontSize: '0.95rem', fontWeight: 700, color: theme === 'light' ? '#0f172a' : '#f8fafc', marginBottom: '0.6rem' }}>
-                        {currentT.formServiceType}
+                        🛠️ {currentT.formServiceType}
                       </label>
                       <select
                         value={bookingForm.serviceType}
@@ -940,21 +1010,22 @@ export default function Home() {
                         style={{
                           width: '100%',
                           padding: '0.9rem 1.2rem',
-                          borderRadius: '12px',
-                          border: theme === 'light' ? '1px solid #cbd5e1' : '1px solid rgba(56, 189, 248, 0.25)',
-                          backgroundColor: theme === 'light' ? '#ffffff' : '#0b1220',
+                          borderRadius: '14px',
+                          border: theme === 'light' ? '1px solid #cbd5e1' : '1px solid rgba(56, 189, 248, 0.3)',
+                          backgroundColor: theme === 'light' ? '#ffffff' : '#0f172a',
                           color: theme === 'light' ? '#0f172a' : '#ffffff',
                           fontSize: '1rem',
                           outline: 'none',
-                          boxSizing: 'border-box'
+                          boxSizing: 'border-box',
+                          backdropFilter: 'blur(10px)'
                         }}
                       >
-                        <option value="Mantenimiento Preventivo a Domicilio">Mantenimiento Preventivo a Domicilio</option>
-                        <option value="Diagnóstico por Escáner / Check Engine">Diagnóstico por Escáner / Check Engine</option>
-                        <option value="Cambio de Aceite y Filtros">Cambio de Aceite y Filtros</option>
-                        <option value="Revisión de Frenos y Suspensión">Revisión de Frenos y Suspensión</option>
-                        <option value="Auxilio Vial / Cambio de Batería">Auxilio Vial / Cambio de Batería</option>
-                        <option value="Inspección Pre-Compra de Vehículo">Inspección Pre-Compra de Vehículo</option>
+                        <option value="Mantenimiento Preventivo a Domicilio" style={{ background: theme === 'light' ? '#ffffff' : '#0f172a', color: theme === 'light' ? '#0f172a' : '#ffffff' }}>Mantenimiento Preventivo a Domicilio</option>
+                        <option value="Diagnóstico por Escáner / Check Engine" style={{ background: theme === 'light' ? '#ffffff' : '#0f172a', color: theme === 'light' ? '#0f172a' : '#ffffff' }}>Diagnóstico por Escáner / Check Engine</option>
+                        <option value="Cambio de Aceite y Filtros" style={{ background: theme === 'light' ? '#ffffff' : '#0f172a', color: theme === 'light' ? '#0f172a' : '#ffffff' }}>Cambio de Aceite y Filtros</option>
+                        <option value="Revisión de Frenos y Suspensión" style={{ background: theme === 'light' ? '#ffffff' : '#0f172a', color: theme === 'light' ? '#0f172a' : '#ffffff' }}>Revisión de Frenos y Suspensión</option>
+                        <option value="Auxilio Vial / Cambio de Batería" style={{ background: theme === 'light' ? '#ffffff' : '#0f172a', color: theme === 'light' ? '#0f172a' : '#ffffff' }}>Auxilio Vial / Cambio de Batería</option>
+                        <option value="Inspección Pre-Compra de Vehículo" style={{ background: theme === 'light' ? '#ffffff' : '#0f172a', color: theme === 'light' ? '#0f172a' : '#ffffff' }}>Inspección Pre-Compra de Vehículo</option>
                       </select>
                     </div>
                   </div>
