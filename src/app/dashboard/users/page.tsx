@@ -280,7 +280,23 @@ export default function UsersPage() {
         body: JSON.stringify(formData)
       });
       if (ok) {
-        showToast('¡Usuario y sucursal actualizados exitosamente! ✨', 'success');
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.id === editingUser.id
+              ? {
+                  ...u,
+                  firstName: formData.firstName,
+                  lastName: formData.lastName,
+                  name: `${formData.firstName} ${formData.lastName}`.trim(),
+                  email: formData.email,
+                  role: formData.role,
+                  department: formData.department,
+                  location: formData.location,
+                }
+              : u
+          )
+        );
+        showToast('¡Usuario y datos actualizados exitosamente! ✨', 'success');
         setIsCreateModalOpen(false);
         fetchData();
       } else {
