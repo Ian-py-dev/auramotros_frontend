@@ -648,6 +648,18 @@ function EmailTab() {
     }));
   };
 
+  const setBrevoPreset = () => {
+    setSmtpConfig(prev => ({
+      ...prev,
+      host: 'api.brevo.com',
+      port: 443,
+      user: 'motosnotificacionesaura@gmail.com',
+      secure: true,
+      fromEmail: 'motosnotificacionesaura@gmail.com',
+      fromName: prev.fromName || 'Aura Servicios Automotrices',
+    }));
+  };
+
   return (
     <div style={{ animation: 'fadeIn 0.3s' }}>
       {/* Header & Status Indicator */}
@@ -692,15 +704,15 @@ function EmailTab() {
       <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
         <button
           type="button"
-          onClick={setGmailPreset}
+          onClick={setBrevoPreset}
           style={{
             padding: '6px 14px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 600,
-            background: smtpConfig.host === 'smtp.gmail.com' ? 'rgba(2,132,199,0.2)' : 'var(--bg-secondary)',
-            border: `1px solid ${smtpConfig.host === 'smtp.gmail.com' ? '#0284c7' : 'var(--glass-border)'}`,
+            background: smtpConfig.host === 'api.brevo.com' ? 'rgba(59,130,246,0.2)' : 'var(--bg-secondary)',
+            border: `1px solid ${smtpConfig.host === 'api.brevo.com' ? '#3b82f6' : 'var(--glass-border)'}`,
             color: 'var(--text-primary)', cursor: 'pointer'
           }}
         >
-          ⚡ Preset: Gmail (Puerto 465 SSL)
+          ✉️ Preset: Brevo (HTTPS Puerto 443 - Envía a Clientes sin Dominio)
         </button>
         <button
           type="button"
@@ -716,6 +728,18 @@ function EmailTab() {
         </button>
         <button
           type="button"
+          onClick={setGmailPreset}
+          style={{
+            padding: '6px 14px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 600,
+            background: smtpConfig.host === 'smtp.gmail.com' ? 'rgba(2,132,199,0.2)' : 'var(--bg-secondary)',
+            border: `1px solid ${smtpConfig.host === 'smtp.gmail.com' ? '#0284c7' : 'var(--glass-border)'}`,
+            color: 'var(--text-primary)', cursor: 'pointer'
+          }}
+        >
+          ⚡ Preset: Gmail (Puerto 465 SSL)
+        </button>
+        <button
+          type="button"
           onClick={setOutlookPreset}
           style={{
             padding: '6px 14px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 600,
@@ -724,7 +748,7 @@ function EmailTab() {
             color: 'var(--text-primary)', cursor: 'pointer'
           }}
         >
-          ⚡ Preset: Outlook / Office 365 (Puerto 587)
+          ⚡ Preset: Outlook / Office 365
         </button>
       </div>
 
@@ -780,13 +804,13 @@ function EmailTab() {
               {/* Password with Eye Toggle */}
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-                  {smtpConfig.host === 'api.resend.com' ? 'API Key de Resend (re_...)' : 'Contraseña / App Password'} <span style={{ color: '#ef4444' }}>*</span>
+                  {smtpConfig.host === 'api.brevo.com' ? 'API Key de Brevo (xkeysib-...)' : smtpConfig.host === 'api.resend.com' ? 'API Key de Resend (re_...)' : 'Contraseña / App Password'} <span style={{ color: '#ef4444' }}>*</span>
                 </label>
                 <div style={{ position: 'relative' }}>
                   <input
                     type={showPassword ? 'text' : 'password'}
                     required
-                    placeholder={smtpConfig.host === 'api.resend.com' ? 're_123456789abcdef...' : 'Contraseña de aplicación (16 caracteres)'}
+                    placeholder={smtpConfig.host === 'api.brevo.com' ? 'xkeysib-xxxxxxxxxxxx...' : smtpConfig.host === 'api.resend.com' ? 're_123456789abcdef...' : 'Contraseña de aplicación (16 caracteres)'}
                     value={smtpConfig.pass}
                     onChange={(e) => setSmtpConfig({ ...smtpConfig, pass: e.target.value })}
                     style={{ width: '100%', padding: '0.75rem 2.5rem 0.75rem 0.75rem', borderRadius: '8px', border: '1px solid var(--glass-border)', outline: 'none', color: 'var(--text-primary)', background: 'var(--bg-secondary)' }}
@@ -918,13 +942,23 @@ function EmailTab() {
             </form>
           </div>
 
+          {/* Guide Card: Brevo */}
+          <div style={{ background: 'rgba(59, 130, 246, 0.08)', border: '1px solid rgba(59, 130, 246, 0.25)', borderRadius: '16px', padding: '1.25rem' }}>
+            <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.95rem', color: '#3b82f6', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              ✉️ Opción Recomendada: Brevo (Sin verificar dominios)
+            </h4>
+            <p style={{ margin: 0, fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+              Si no tienes un dominio web y quieres enviar correos a cualquier cliente: regístrate gratis en <a href="https://brevo.com" target="_blank" rel="noreferrer" style={{ color: '#3b82f6', fontWeight: 600 }}>brevo.com</a> con tu correo Gmail, ve a <strong>SMTP y API &gt; Claves API</strong>, copia tu clave (<strong>xkeysib-...</strong>) y podrás enviar hasta 300 correos diarios a cualquier destinatario por HTTPS (Puerto 443).
+            </p>
+          </div>
+
           {/* Guide Card: Resend API */}
           <div style={{ background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: '16px', padding: '1.25rem' }}>
             <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.95rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              🚀 Recomendado para Railway: Resend API
+              🚀 Alternativa Cloud: Resend API
             </h4>
             <p style={{ margin: 0, fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-              Los servidores cloud como Railway nunca bloquean el tráfico HTTPS (Puerto 443). Crea una cuenta gratuita en <a href="https://resend.com" target="_blank" rel="noreferrer" style={{ color: '#10b981', fontWeight: 600 }}>resend.com</a>, copia tu <strong>API Key (re_...)</strong> y envía hasta 3,000 correos al mes gratis sin bloqueos de puertos.
+              Funciona por HTTPS (Puerto 443). Requiere verificar un dominio en <a href="https://resend.com" target="_blank" rel="noreferrer" style={{ color: '#10b981', fontWeight: 600 }}>resend.com/domains</a> para enviar a clientes externos, o envía correos a tu propia cuenta en modo de prueba gratis.
             </p>
           </div>
 
