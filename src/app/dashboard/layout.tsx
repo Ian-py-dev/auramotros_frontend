@@ -24,7 +24,12 @@ import {
   Clock,
   Car,
   ExternalLink,
-  CheckCircle2
+  CheckCircle2,
+  KeyRound,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  Lock
 } from 'lucide-react';
 import { safeFetch } from '../../lib/api-config';
 
@@ -42,7 +47,7 @@ interface AccessRequestNotificationItem {
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { user, isAuthenticated, isLoading, logout, hasPermission } = useAuth();
+  const { user, isAuthenticated, isLoading, logout, hasPermission, updateUser } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   
@@ -54,6 +59,51 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [accessRequests, setAccessRequests] = useState<AccessRequestNotificationItem[]>([]);
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [approvalMsg, setApprovalMsg] = useState<string | null>(null);
+
+  // Mandatory Password Change states (for first-time/temporary login)
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordChangeLoading, setPasswordChangeLoading] = useState(false);
+  const [passwordChangeError, setPasswordChangeError] = useState<string | null>(null);
+  const [passwordChangeSuccess, setPasswordChangeSuccess] = useState<string | null>(null);
+
+  const handleMandatoryPasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordChangeError(null);
+
+    const trimmed = newPassword.trim();
+    if (!trimmed || trimmed.length < 6) {
+      setPasswordChangeError('La contraseña debe tener un mínimo de 6 caracteres.');
+      return;
+    }
+
+    if (trimmed !== confirmPassword.trim()) {
+      setPasswordChangeError('Las contraseñas no coinciden. Por favor revisa que ambas sean idénticas.');
+      return;
+    }
+
+    setPasswordChangeLoading(true);
+    const { ok, error } = await safeFetch('/auth/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ newPassword: trimmed }),
+    });
+    setPasswordChangeLoading(false);
+
+    if (ok) {
+      setPasswordChangeSuccess('¡Contraseña actualizada correctamente! Ingresando a tu panel...');
+      setTimeout(() => {
+        updateUser({ mustChangePassword: false });
+        setPasswordChangeSuccess(null);
+        setNewPassword('');
+        setConfirmPassword('');
+      }, 1000);
+    } else {
+      setPasswordChangeError(error || 'Ocurrió un error al actualizar la contraseña. Por favor intenta de nuevo.');
+    }
+  };
 
   const isClient = user?.roles?.some(r => r.role?.name === 'Cliente') ?? false;
 
@@ -637,6 +687,247 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {children}
         </div>
       </main>
+
+      {/* Mandatory Password Change Modal for Users with Temporary Credentials */}
+      {user?.mustChangePassword && (
+        <div 
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 99999,
+            backgroundColor: 'rgba(5, 10, 20, 0.88)',
+            backdropFilter: 'blur(14px)',
+            WebkitBackdropFilter: 'blur(14px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+          }}
+        >
+          <div 
+            style={{
+              width: '100%',
+              maxWidth: '460px',
+              backgroundColor: 'var(--bg-card, #0f172a)',
+              borderRadius: '24px',
+              border: '1px solid rgba(56, 189, 248, 0.3)',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 35px rgba(56, 189, 248, 0.18)',
+              padding: '32px 28px',
+              color: 'var(--text-primary, #f8fafc)',
+              position: 'relative',
+            }}
+          >
+            {/* Header Icon */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '24px' }}>
+              <div 
+                style={{
+                  width: '56px',
+                  height: '56px',
+                  borderRadius: '16px',
+                  background: 'linear-gradient(135deg, rgba(2, 132, 199, 0.2) 0%, rgba(56, 189, 248, 0.2) 100%)',
+                  border: '1px solid rgba(56, 189, 248, 0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#38bdf8',
+                  marginBottom: '16px',
+                  boxShadow: '0 8px 16px rgba(56, 189, 248, 0.2)'
+                }}
+              >
+                <KeyRound size={28} />
+              </div>
+              <h2 style={{ fontSize: '20px', fontWeight: 800, margin: '0 0 8px', letterSpacing: '-0.02em', color: 'var(--text-primary, #ffffff)' }}>
+                Actualización Obligatoria de Contraseña
+              </h2>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary, #94a3b8)', margin: 0, lineHeight: 1.5 }}>
+                Has ingresado con una contraseña temporal. Por tu seguridad, debes definir tu nueva contraseña personal para continuar navegando en Aura.
+              </p>
+            </div>
+
+            {/* Error Message */}
+            {passwordChangeError && (
+              <div 
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  color: '#f87171',
+                  fontSize: '13px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  marginBottom: '20px'
+                }}
+              >
+                <AlertCircle size={16} style={{ flexShrink: 0 }} />
+                <span>{passwordChangeError}</span>
+              </div>
+            )}
+
+            {/* Success Message */}
+            {passwordChangeSuccess && (
+              <div 
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  color: '#34d399',
+                  fontSize: '13px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  marginBottom: '20px'
+                }}
+              >
+                <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
+                <span>{passwordChangeSuccess}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleMandatoryPasswordChange}>
+              {/* New Password Field */}
+              <div style={{ marginBottom: '18px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary, #94a3b8)', marginBottom: '6px' }}>
+                  Nueva Contraseña
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showNewPassword ? 'text' : 'password'}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Mínimo 6 caracteres"
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '12px 42px 12px 14px',
+                      borderRadius: '12px',
+                      border: '1px solid var(--glass-border, rgba(255,255,255,0.12))',
+                      backgroundColor: 'var(--bg-input, rgba(255,255,255,0.05))',
+                      color: 'var(--text-primary, #ffffff)',
+                      fontSize: '14px',
+                      outline: 'none',
+                      transition: 'border-color 0.2s',
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    style={{
+                      position: 'absolute',
+                      right: '12px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--text-secondary, #94a3b8)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      padding: 0
+                    }}
+                  >
+                    {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Confirm Password Field */}
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-secondary, #94a3b8)', marginBottom: '6px' }}>
+                  Confirmar Contraseña
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Repite tu nueva contraseña"
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '12px 42px 12px 14px',
+                      borderRadius: '12px',
+                      border: '1px solid var(--glass-border, rgba(255,255,255,0.12))',
+                      backgroundColor: 'var(--bg-input, rgba(255,255,255,0.05))',
+                      color: 'var(--text-primary, #ffffff)',
+                      fontSize: '14px',
+                      outline: 'none',
+                      transition: 'border-color 0.2s',
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    style={{
+                      position: 'absolute',
+                      right: '12px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--text-secondary, #94a3b8)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      padding: 0
+                    }}
+                  >
+                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={passwordChangeLoading || !!passwordChangeSuccess}
+                style={{
+                  width: '100%',
+                  padding: '13px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #0284c7 0%, #06b6d4 100%)',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  fontSize: '14px',
+                  cursor: passwordChangeLoading ? 'not-allowed' : 'pointer',
+                  boxShadow: '0 4px 14px rgba(2, 132, 199, 0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  transition: 'opacity 0.2s'
+                }}
+              >
+                <Lock size={16} />
+                {passwordChangeLoading ? 'Guardando contraseña...' : 'Guardar Contraseña y Continuar'}
+              </button>
+            </form>
+
+            {/* Logout alternative */}
+            <div style={{ marginTop: '20px', textAlign: 'center', borderTop: '1px solid var(--glass-border, rgba(255,255,255,0.08))', paddingTop: '16px' }}>
+              <button
+                type="button"
+                onClick={logout}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-secondary, #94a3b8)',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  textDecoration: 'underline'
+                }}
+              >
+                <LogOut size={13} />
+                Cerrar sesión e ingresar en otro momento
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

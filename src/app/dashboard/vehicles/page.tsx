@@ -21,9 +21,13 @@ import {
   Sparkles, 
   CalendarRange,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  ShieldAlert,
+  ClipboardList,
+  Fuel
 } from 'lucide-react';
 import Link from 'next/link';
+import VehicleDamageMapModal, { DamagePoint, VehicleInspectionData } from '../../../components/vehicles/VehicleDamageMapModal';
 
 interface VehicleOwner {
   id: string;
@@ -46,6 +50,8 @@ interface VehicleData {
   lastMaintenanceMileage?: number;
   notes?: string;
   photos?: string[];
+  damages?: DamagePoint[];
+  inspection?: VehicleInspectionData;
   userId: string;
   user?: VehicleOwner;
   createdAt: string;
@@ -79,10 +85,14 @@ export default function VehiclesPage() {
     notes: '',
   });
   const [photos, setPhotos] = useState<string[]>([]);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
   // Modal State for Technical Dossier (Vista Completa para el Técnico)
   const [selectedVehicleForDossier, setSelectedVehicleForDossier] = useState<VehicleData | null>(null);
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
+
+  // Modal State for Damage Map & Checklist (Módulo MoreApp)
+  const [inspectingVehicle, setInspectingVehicle] = useState<VehicleData | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -109,23 +119,70 @@ export default function VehiclesPage() {
     }
   }, [user?.id, fetchVehicles]);
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    Array.from(files).forEach(file => {
-      if (!file.type.startsWith('image/')) return;
+  const compressImage = (file: File, maxWidth = 1280, maxHeight = 1280, quality = 0.8): Promise<string> => {
+    return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = (event) => {
-        if (event.target?.result) {
-          setPhotos(prev => [...prev, event.target!.result as string]);
-        }
+        const img = new Image();
+        img.onload = () => {
+          let { width, height } = img;
+          if (width > maxWidth || height > maxHeight) {
+            if (width > height) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            } else {
+              width = Math.round((width * maxHeight) / height);
+              height = maxHeight;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(event.target?.result as string);
+            return;
+          }
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = () => {
+          resolve(event.target?.result as string);
+        };
+        img.src = event.target?.result as string;
+      };
+      reader.onerror = () => {
+        resolve('');
       };
       reader.readAsDataURL(file);
     });
+  };
 
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploadingPhoto(true);
+    try {
+      const fileList = Array.from(files).filter(file => file.type.startsWith('image/'));
+      const compressedList: string[] = [];
+      for (const file of fileList) {
+        const compressedBase64 = await compressImage(file);
+        if (compressedBase64) {
+          compressedList.push(compressedBase64);
+        }
+      }
+      if (compressedList.length > 0) {
+        setPhotos(prev => [...prev, ...compressedList]);
+      }
+    } catch (err) {
+      console.error('Error procesando fotografías:', err);
+      showToast('Error al procesar alguna imagen', 'error');
+    } finally {
+      setIsUploadingPhoto(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -458,6 +515,61 @@ export default function VehiclesPage() {
                     </div>
                   )}
 
+                  {/* Damage & Inspection Status Badges (MoreApp) */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
+                    {vehicle.damages && vehicle.damages.length > 0 ? (
+                      <span style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        padding: '3px 8px',
+                        borderRadius: '8px',
+                        backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                        color: '#f87171',
+                        border: '1px solid rgba(239, 68, 68, 0.25)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}>
+                        <ShieldAlert size={12} />
+                        <span>{vehicle.damages.length} daño(s) señalados</span>
+                      </span>
+                    ) : (
+                      <span style={{
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        padding: '3px 8px',
+                        borderRadius: '8px',
+                        backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                        color: '#34d399',
+                        border: '1px solid rgba(16, 185, 129, 0.2)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}>
+                        <CheckCircle2 size={12} />
+                        <span>Carrocería sin daños</span>
+                      </span>
+                    )}
+
+                    {vehicle.inspection?.fuelLevel && (
+                      <span style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        padding: '3px 8px',
+                        borderRadius: '8px',
+                        backgroundColor: 'rgba(56, 189, 248, 0.1)',
+                        color: '#38bdf8',
+                        border: '1px solid rgba(56, 189, 248, 0.25)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}>
+                        <Fuel size={12} />
+                        <span>Gas: {vehicle.inspection.fuelLevel === 'full' ? 'Lleno' : vehicle.inspection.fuelLevel === 'three_quarters' ? '3/4' : vehicle.inspection.fuelLevel === 'half' ? '1/2' : vehicle.inspection.fuelLevel === 'quarter' ? '1/4' : 'Reserva'}</span>
+                      </span>
+                    )}
+                  </div>
+
                   {/* Actions Footer */}
                   <div style={{ marginTop: 'auto', paddingTop: '12px', borderTop: '1px solid var(--glass-border)', display: 'flex', gap: '8px', alignItems: 'center' }}>
                     
@@ -475,7 +587,22 @@ export default function VehiclesPage() {
                       }}
                     >
                       <Eye size={14} />
-                      <span>{isClient ? 'Ver Mi Auto' : 'Expediente Técnico'}</span>
+                      <span>{isClient ? 'Ver Mi Auto' : 'Expediente'}</span>
+                    </button>
+
+                    {/* Damage Map & Inspection MoreApp Button */}
+                    <button
+                      onClick={() => setInspectingVehicle(vehicle)}
+                      title="Mapa de Daños & Checklist (MoreApp)"
+                      style={{
+                        padding: '8px 10px', borderRadius: '10px',
+                        background: 'rgba(245, 158, 11, 0.12)', border: '1px solid rgba(245, 158, 11, 0.3)',
+                        color: '#f59e0b', fontWeight: 700, fontSize: '12px', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '5px'
+                      }}
+                    >
+                      <ClipboardList size={14} />
+                      <span>Inspección</span>
                     </button>
 
                     {/* Book service CTA for client */}
@@ -746,15 +873,16 @@ export default function VehiclesPage() {
                   </label>
                   <button
                     type="button"
+                    disabled={isUploadingPhoto}
                     onClick={() => fileInputRef.current?.click()}
                     style={{
                       padding: '6px 12px', borderRadius: '8px', border: '1px solid #0284c7',
                       background: 'rgba(2, 132, 199, 0.12)', color: '#0284c7', fontWeight: 700,
-                      fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px'
+                      fontSize: '12px', cursor: isUploadingPhoto ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: '5px'
                     }}
                   >
                     <Plus size={14} />
-                    <span>Subir Fotos</span>
+                    <span>{isUploadingPhoto ? 'Procesando...' : 'Subir Fotos'}</span>
                   </button>
                   <input
                     ref={fileInputRef}
@@ -768,19 +896,19 @@ export default function VehiclesPage() {
 
                 {photos.length === 0 ? (
                   <div 
-                    onClick={() => fileInputRef.current?.click()}
+                    onClick={() => !isUploadingPhoto && fileInputRef.current?.click()}
                     style={{
                       padding: '30px', borderRadius: '14px', border: '2px dashed var(--glass-border)',
-                      textAlign: 'center', cursor: 'pointer', background: 'rgba(0,0,0,0.02)',
+                      textAlign: 'center', cursor: isUploadingPhoto ? 'wait' : 'pointer', background: 'rgba(0,0,0,0.02)',
                       transition: 'border-color 0.2s'
                     }}
                   >
                     <Camera size={32} style={{ color: 'var(--text-secondary)', margin: '0 auto 8px', opacity: 0.6 }} />
                     <p style={{ margin: '0 0 4px 0', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                      Haz clic para subir fotografías de tu auto desde tu dispositivo
+                      {isUploadingPhoto ? 'Optimizando fotografías...' : 'Haz clic para subir fotografías de tu auto desde tu dispositivo'}
                     </p>
                     <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-secondary)' }}>
-                      Formatos soportados: JPG, PNG, WEBP. Los mecánicos podrán inspeccionarlas en su expediente.
+                      Formatos soportados: JPG, PNG, WEBP. Se optimizan automáticamente para carga ultrarrápida.
                     </p>
                   </div>
                 ) : (
@@ -889,6 +1017,54 @@ export default function VehiclesPage() {
                 style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '6px' }}
               >
                 <X size={22} />
+              </button>
+            </div>
+
+            {/* Dossier Damage Map & Checklist Banner (MoreApp) */}
+            <div style={{
+              padding: '16px 20px',
+              borderRadius: '16px',
+              background: 'linear-gradient(135deg, rgba(2, 132, 199, 0.08) 0%, rgba(245, 158, 11, 0.08) 100%)',
+              border: '1px solid rgba(245, 158, 11, 0.25)',
+              marginBottom: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px'
+            }}>
+              <div>
+                <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: 800, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <ClipboardList size={18} />
+                  <span>Inspección de Carrocería & Inventario (MoreApp)</span>
+                </h4>
+                <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  {selectedVehicleForDossier.damages && selectedVehicleForDossier.damages.length > 0
+                    ? `Se han registrado ${selectedVehicleForDossier.damages.length} daño(s) señalados en la carrocería.`
+                    : 'Sin daños señalados en la carrocería.'}
+                  {selectedVehicleForDossier.inspection?.fuelLevel && ` • Nivel de combustible: ${selectedVehicleForDossier.inspection.fuelLevel}`}
+                </p>
+              </div>
+
+              <button
+                onClick={() => setInspectingVehicle(selectedVehicleForDossier)}
+                style={{
+                  padding: '9px 18px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3)'
+                }}
+              >
+                <ClipboardList size={15} />
+                <span>Abrir Mapa de Daños & Checklist</span>
               </button>
             </div>
 
@@ -1002,6 +1178,27 @@ export default function VehiclesPage() {
 
           </div>
         </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 3: MAPA DE DAÑOS Y CHECKLIST DE INSPECCIÓN VEHICULAR (MOREAPP)     */}
+      {/* ========================================================================= */}
+      {inspectingVehicle && (
+        <VehicleDamageMapModal
+          isOpen={!!inspectingVehicle}
+          onClose={() => setInspectingVehicle(null)}
+          vehicleId={inspectingVehicle.id}
+          vehicleTitle={`${inspectingVehicle.brand} ${inspectingVehicle.model} (${inspectingVehicle.year})`}
+          initialDamages={inspectingVehicle.damages}
+          initialInspection={inspectingVehicle.inspection}
+          onSaved={(updatedDamages, updatedInspection) => {
+            setVehicles(prev => prev.map(v => v.id === inspectingVehicle.id ? { ...v, damages: updatedDamages, inspection: updatedInspection } : v));
+            if (selectedVehicleForDossier?.id === inspectingVehicle.id) {
+              setSelectedVehicleForDossier(prev => prev ? { ...prev, damages: updatedDamages, inspection: updatedInspection } : null);
+            }
+            showToast('¡Inspección y mapa de daños guardados! 📋✨');
+          }}
+        />
       )}
 
     </div>

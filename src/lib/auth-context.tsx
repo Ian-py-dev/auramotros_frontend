@@ -19,6 +19,7 @@ export type User = {
   lastName: string;
   email: string;
   roles: { role: Role }[];
+  mustChangePassword?: boolean;
 };
 
 type AuthContextType = {
@@ -27,6 +28,7 @@ type AuthContextType = {
   isLoading: boolean;
   login: (access_token: string, user_data: User) => void;
   logout: () => void;
+  updateUser: (fields: Partial<User>) => void;
   hasPermission: (permissionAction: string) => boolean;
   refreshUser: () => Promise<void>;
   loginWithBiometrics: () => Promise<void>;
@@ -95,13 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = (access_token: string, user_data: User) => {
-    const isSecureEnv = typeof window !== 'undefined' && 
-                        (window.location.protocol === 'https:' || process.env.NODE_ENV === 'production');
-    
-    // In production, token is handled via HttpOnly Cookies by backend.
-    // We just save a placeholder to know we have an active session.
-    const tokenToStore = isSecureEnv ? 'session_active' : access_token;
-    localStorage.setItem('siga-token', tokenToStore);
+    localStorage.setItem('siga-token', access_token);
     localStorage.setItem('siga-user', JSON.stringify(user_data));
     
     setUser(user_data);
@@ -114,6 +110,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setIsAuthenticated(false);
     // Real implementation would also call /auth/logout API to clear cookie
+  };
+
+  const updateUser = (fields: Partial<User>) => {
+    setUser((prev) => {
+      if (!prev) return null;
+      const updated = { ...prev, ...fields };
+      localStorage.setItem('siga-user', JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const hasPermission = (permissionAction: string): boolean => {
@@ -158,6 +163,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         login,
         logout,
+        updateUser,
         hasPermission,
         refreshUser,
         loginWithBiometrics,
