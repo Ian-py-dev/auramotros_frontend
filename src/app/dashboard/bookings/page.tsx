@@ -1,18 +1,18 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { safeFetch } from '../../../lib/api-config';
 import { useAuth } from '../../../lib/auth-context';
-import { 
-  CalendarRange, 
-  CheckCircle2, 
-  Clock, 
-  AlertTriangle, 
-  MapPin, 
-  Phone, 
-  Car, 
-  User, 
-  Calendar as CalendarIcon, 
+import {
+  CalendarRange,
+  CheckCircle2,
+  Clock,
+  AlertTriangle,
+  MapPin,
+  Phone,
+  Car,
+  User,
+  Calendar as CalendarIcon,
   FileText,
   Search,
   Trash2,
@@ -82,18 +82,18 @@ export default function BookingsPage() {
     setTimeout(() => setToastMessage(null), 4000);
   };
 
-  const fetchClientVehicles = async () => {
+  const fetchClientVehicles = useCallback(async () => {
     if (!user?.id) return;
     const { ok, data } = await safeFetch<ClientVehicle[]>(`/vehicles?userId=${user.id}`);
     if (ok && Array.isArray(data)) {
       setClientVehicles(data);
-      if (data.length > 0 && !newBookingData.vehicleId) {
-        setNewBookingData(prev => ({ ...prev, vehicleId: data[0].id }));
+      if (data.length > 0) {
+        setNewBookingData(prev => ({ ...prev, vehicleId: prev.vehicleId || data[0].id }));
       }
     }
-  };
+  }, [user?.id]);
 
-  const fetchBookings = async (showLoading = false) => {
+  const fetchBookings = useCallback(async (showLoading = false) => {
     if (showLoading) setIsLoading(true);
     const { ok, data } = await safeFetch<BookingRequest[]>('/booking-requests');
     if (ok && Array.isArray(data)) {
@@ -104,7 +104,7 @@ export default function BookingsPage() {
       setBookings(data);
     }
     if (showLoading) setIsLoading(false);
-  };
+  }, [isClient]);
 
   useEffect(() => {
     fetchBookings(true);
@@ -116,7 +116,7 @@ export default function BookingsPage() {
       fetchBookings(false);
     }, 6000);
     return () => clearInterval(interval);
-  }, [isClient, user?.id]);
+  }, [isClient, user?.id, fetchBookings, fetchClientVehicles]);
 
   const handleMarkAsAttended = async (id: string) => {
     const { ok } = await safeFetch(`/booking-requests/${id}/attend`, {
@@ -152,7 +152,7 @@ export default function BookingsPage() {
     }
 
     const selectedCar = clientVehicles.find(v => v.id === newBookingData.vehicleId);
-    const vehicleText = selectedCar 
+    const vehicleText = selectedCar
       ? `${selectedCar.brand} ${selectedCar.model} (${selectedCar.year}) - Placas: ${selectedCar.plates || 'S/P'}`
       : 'Vehículo Cliente';
 
@@ -200,13 +200,13 @@ export default function BookingsPage() {
     if (isClient && user) {
       const clientName = `${user.firstName} ${user.lastName}`.toLowerCase();
       const matchesClient = b.clientName.toLowerCase().includes(user.firstName.toLowerCase()) ||
-                            b.clientName.toLowerCase().includes(clientName);
+        b.clientName.toLowerCase().includes(clientName);
       if (!matchesClient) return false;
     }
 
     const matchesStatus = filterStatus === 'ALL' || b.status === filterStatus;
     const searchLower = searchTerm.toLowerCase();
-    const matchesSearch = 
+    const matchesSearch =
       b.clientName.toLowerCase().includes(searchLower) ||
       b.clientPhone.toLowerCase().includes(searchLower) ||
       b.vehicle.toLowerCase().includes(searchLower) ||
@@ -230,7 +230,7 @@ export default function BookingsPage() {
           100% { transform: scale(0.95); opacity: 0.7; }
         }
       `}</style>
-      
+
       {/* Toast Notification */}
       {toastMessage && (
         <div style={{
@@ -502,7 +502,7 @@ export default function BookingsPage() {
 
                 {/* Client Details Grid */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem' }}>
-                  
+
                   {/* Client Info */}
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.8rem', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.35rem' }}>
@@ -672,7 +672,7 @@ export default function BookingsPage() {
         </div>
       )}
 
-    {/* MODAL: AGENDAR CITA PARA CLIENTE */}
+      {/* MODAL: AGENDAR CITA PARA CLIENTE */}
       {isNewBookingModalOpen && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center',

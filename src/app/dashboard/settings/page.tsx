@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { getApiBaseUrl, safeFetch } from '../../../lib/api-config';
 import { 
   Eye, 
@@ -531,7 +531,7 @@ function EmailTab() {
   const [testEmail, setTestEmail] = useState('');
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  const fetchConfig = async () => {
+  const fetchConfig = useCallback(async () => {
     const { ok, data } = await safeFetch<SmtpConfigResponse>('/surveys/smtp-config');
     if (ok && data) {
       setSmtpConfig({
@@ -544,15 +544,15 @@ function EmailTab() {
         fromEmail: data.fromEmail || data.user || '',
         secure: data.secure ?? true,
       });
-      if (data.user && !testEmail) {
-        setTestEmail(data.user);
+      if (data.user) {
+        setTestEmail(prev => prev || data.user || '');
       }
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchConfig();
-  }, []);
+  }, [fetchConfig]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();

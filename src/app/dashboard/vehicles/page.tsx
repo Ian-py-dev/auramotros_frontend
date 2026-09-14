@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../../../lib/auth-context';
 import { safeFetch } from '../../../lib/api-config';
 import { 
@@ -91,7 +91,7 @@ export default function VehiclesPage() {
     setTimeout(() => setToastMessage(null), 4000);
   };
 
-  const fetchVehicles = async () => {
+  const fetchVehicles = useCallback(async () => {
     setIsLoading(true);
     const endpoint = isClient && user?.id ? `/vehicles?userId=${user.id}` : '/vehicles';
     const { ok, data } = await safeFetch<VehicleData[]>(endpoint);
@@ -101,13 +101,13 @@ export default function VehiclesPage() {
       setVehicles([]);
     }
     setIsLoading(false);
-  };
+  }, [isClient, user?.id]);
 
   useEffect(() => {
     if (user?.id) {
       fetchVehicles();
     }
-  }, [user?.id, isClient]);
+  }, [user?.id, fetchVehicles]);
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;

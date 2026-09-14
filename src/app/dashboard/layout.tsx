@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '../../lib/auth-context';
 import Link from 'next/link';
@@ -98,13 +98,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [mounted, isLoading, isAuthenticated, isClient, pathname, router]);
 
   // Polling access requests for administrators
-  const fetchAccessRequests = async () => {
+  const fetchAccessRequests = useCallback(async () => {
     if (isClient) return;
     const { ok, data } = await safeFetch<AccessRequestNotificationItem[]>('/users/access-requests');
     if (ok && Array.isArray(data)) {
       setAccessRequests(data);
     }
-  };
+  }, [isClient]);
 
   useEffect(() => {
     if (mounted && isAuthenticated && !isClient) {
@@ -112,7 +112,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       const interval = setInterval(fetchAccessRequests, 12000);
       return () => clearInterval(interval);
     }
-  }, [mounted, isAuthenticated, isClient]);
+  }, [mounted, isAuthenticated, isClient, fetchAccessRequests]);
 
   const handleQuickApprove = async (reqId: string, name: string) => {
     setApprovingId(reqId);
