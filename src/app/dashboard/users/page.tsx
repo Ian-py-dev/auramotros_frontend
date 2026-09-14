@@ -59,7 +59,13 @@ type AccessRequestItem = {
   email: string;
   firstName: string;
   lastName: string;
+  phone?: string;
   role: string;
+  vehicleBrand?: string;
+  vehicleModel?: string;
+  vehicleYear?: number;
+  vehiclePlates?: string;
+  lastMaintenanceDate?: string;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   createdAt: string;
 };
@@ -230,7 +236,11 @@ export default function UsersPage() {
 
   const handleApproveRequest = async (reqId: string, name: string) => {
     showToast(`Aprobando solicitud de ${name} y enviando accesos por correo...`, 'info');
-    const { ok, data, error } = await safeFetch<{ message: string }>(`/users/access-requests/${reqId}/approve`, { method: 'POST' });
+    const { ok, data, error } = await safeFetch<{ message: string }>(`/users/access-requests/${reqId}/approve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ loginUrl: `${window.location.origin}/login` })
+    });
     if (ok && data) {
       showToast(data.message, 'success');
       fetchData();
@@ -725,7 +735,14 @@ export default function UsersPage() {
                   <div key={req.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderRadius: '14px', background: 'rgba(2, 6, 23, 0.6)', border: '1px solid rgba(255, 255, 255, 0.12)', flexWrap: 'wrap', gap: '12px' }}>
                     <div>
                       <h4 style={{ fontSize: '16px', fontWeight: 700, color: '#ffffff', margin: 0 }}>{req.firstName} {req.lastName}</h4>
-                      <p style={{ fontSize: '13px', color: '#94a3b8', margin: '2px 0 0' }}>{req.email} • Rol: <span style={{ color: '#38bdf8' }}>{req.role}</span></p>
+                      <p style={{ fontSize: '13px', color: '#94a3b8', margin: '2px 0 0' }}>{req.email} {req.phone ? `• Tel: ${req.phone}` : ''} • Rol: <span style={{ color: '#38bdf8' }}>{req.role}</span></p>
+                      {req.vehicleBrand && (
+                        <div style={{ marginTop: '8px', padding: '6px 10px', borderRadius: '8px', background: 'rgba(2, 132, 199, 0.15)', border: '1px solid rgba(2, 132, 199, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#38bdf8' }}>
+                          <span>🚗 Auto Solicitado: <b>{req.vehicleBrand} {req.vehicleModel} ({req.vehicleYear || 'S/A'})</b></span>
+                          {req.vehiclePlates && <span>• Placas: <b>{req.vehiclePlates}</b></span>}
+                          {req.lastMaintenanceDate && <span>• Últ. Mantenimiento: {new Date(req.lastMaintenanceDate).toLocaleDateString()}</span>}
+                        </div>
+                      )}
                     </div>
 
                     <div>

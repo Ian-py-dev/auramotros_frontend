@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { safeFetch } from '../../../lib/api-config';
-import { ShieldCheck, Plus, BarChart3, Mail, Send, Zap, Trash2, PlayCircle, PauseCircle, Copy, ExternalLink, Phone, Car, Lock } from 'lucide-react';
+import { ShieldCheck, Plus, BarChart3, Mail, Send, Zap, Trash2, PlayCircle, PauseCircle, Copy, ExternalLink, Phone, Car, Lock, Eye, EyeOff } from 'lucide-react';
 
 type Survey = {
   id: string;
@@ -122,6 +122,7 @@ export default function SurveysPage() {
   });
   const [isLoadingSmtp, setIsLoadingSmtp] = useState(false);
   const [isTestingSmtp, setIsTestingSmtp] = useState(false);
+  const [showSmtpPassword, setShowSmtpPassword] = useState(false);
   const [smtpFeedback, setSmtpFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [testEmailAddress, setTestEmailAddress] = useState('');
   const [isSendingTestEmail, setIsSendingTestEmail] = useState(false);
@@ -547,10 +548,24 @@ export default function SurveysPage() {
                 </div>
                 <div>
                   <label style={labelStyle}>Contraseña / App Password</label>
-                  <input className="survey-input" type="password" required placeholder="Contraseña de aplicación"
-                    value={smtpConfig.pass} onChange={(e) => setSmtpConfig({ ...smtpConfig, pass: e.target.value })}
-                    style={inputStyle}
-                  />
+                  <div style={{ position: 'relative' }}>
+                    <input className="survey-input" type={showSmtpPassword ? 'text' : 'password'} required placeholder="Contraseña de aplicación"
+                      value={smtpConfig.pass} onChange={(e) => setSmtpConfig({ ...smtpConfig, pass: e.target.value })}
+                      style={{ ...inputStyle, paddingRight: '42px' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowSmtpPassword(!showSmtpPassword)}
+                      title={showSmtpPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                      style={{
+                        position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
+                        background: 'transparent', border: 'none', color: 'var(--text-secondary)',
+                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                      }}
+                    >
+                      {showSmtpPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
                 </div>
                 <div>
                   <label style={labelStyle}>Nombre del remitente</label>

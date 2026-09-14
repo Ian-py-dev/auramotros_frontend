@@ -1,17 +1,36 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { getApiBaseUrl } from '../../../lib/api-config';
+import { getApiBaseUrl, safeFetch } from '../../../lib/api-config';
+import { 
+  Eye, 
+  EyeOff, 
+  ShieldCheck, 
+  Zap, 
+  Mail, 
+  Send, 
+  CheckCircle2, 
+  AlertCircle,
+  Building2 as BuildingIcon,
+  Plus as PlusIcon,
+  Edit3 as EditIcon,
+  Trash2 as TrashIcon,
+  Wrench as WrenchIcon,
+  CheckCircle as CheckCircleIcon,
+  Mail as MailIcon
+} from 'lucide-react';
 
-// --- Icons ---
-const BuildingIcon = () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>;
-const WrenchIcon = () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243 4.243 3 3 0 004.243-4.243zm0-5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z"></path></svg>;
-const CheckCircleIcon = () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>;
-const MailIcon = () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>;
-const PlusIcon = () => <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"></path></svg>;
-const EditIcon = () => <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>;
-const TrashIcon = () => <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>;
-const EyeIcon = () => <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>;
+interface SmtpConfigResponse {
+  configured?: boolean;
+  host?: string;
+  port?: number;
+  user?: string;
+  pass?: string;
+  fromName?: string;
+  fromEmail?: string;
+  secure?: boolean;
+  message?: string;
+}
 
 // --- Components ---
 
@@ -492,113 +511,400 @@ function EstadosTab() {
   );
 }
 
-// 4. Email Tab
+// 4. Email Tab (Gestión Dinámica de SMTP)
 function EmailTab() {
+  const [smtpConfig, setSmtpConfig] = useState({
+    configured: false,
+    host: 'smtp.gmail.com',
+    port: 465,
+    user: '',
+    pass: '',
+    fromName: 'Aura Servicios Automotrices',
+    fromEmail: '',
+    secure: true,
+  });
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
+  const [isSendingTest, setIsSendingTest] = useState(false);
+  const [testEmail, setTestEmail] = useState('');
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const fetchConfig = async () => {
+    const { ok, data } = await safeFetch<SmtpConfigResponse>('/surveys/smtp-config');
+    if (ok && data) {
+      setSmtpConfig({
+        configured: Boolean(data.configured),
+        host: data.host || 'smtp.gmail.com',
+        port: data.port || 465,
+        user: data.user || '',
+        pass: data.pass || '',
+        fromName: data.fromName || 'Aura Servicios Automotrices',
+        fromEmail: data.fromEmail || data.user || '',
+        secure: data.secure ?? true,
+      });
+      if (data.user && !testEmail) {
+        setTestEmail(data.user);
+      }
+    }
+  };
+
+  useEffect(() => {
+    fetchConfig();
+  }, []);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setFeedback(null);
+
+    const { ok, data, error } = await safeFetch<SmtpConfigResponse>('/surveys/smtp-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(smtpConfig),
+    });
+
+    if (ok) {
+      setFeedback({ type: 'success', message: '¡Configuración de correo SMTP guardada exitosamente en la base de datos!' });
+      fetchConfig();
+    } else {
+      setFeedback({ type: 'error', message: data?.message || error || 'Error al guardar la configuración SMTP.' });
+    }
+    setIsLoading(false);
+  };
+
+  const handleTestConnection = async () => {
+    setIsTesting(true);
+    setFeedback(null);
+
+    const { ok, data, error } = await safeFetch<{ message?: string }>('/surveys/smtp-test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(smtpConfig),
+    });
+
+    if (ok) {
+      setFeedback({ type: 'success', message: data?.message || '¡Conexión SMTP verificada con éxito! El servidor está listo para enviar correos.' });
+    } else {
+      setFeedback({ type: 'error', message: data?.message || error || 'No se pudo conectar al servidor SMTP. Revisa el host, puerto y credenciales.' });
+    }
+    setIsTesting(false);
+  };
+
+  const handleSendTestEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!testEmail.trim()) {
+      setFeedback({ type: 'error', message: 'Ingresa un correo electrónico de destino para la prueba.' });
+      return;
+    }
+
+    setIsSendingTest(true);
+    setFeedback(null);
+
+    const { ok, data, error } = await safeFetch<{ message?: string }>('/surveys/smtp-config/send-test-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ targetEmail: testEmail.trim() }),
+    });
+
+    if (ok) {
+      setFeedback({ type: 'success', message: data?.message || `¡Correo de prueba enviado exitosamente a ${testEmail}!` });
+    } else {
+      setFeedback({ type: 'error', message: data?.message || error || 'Error al enviar el correo de prueba. Verifica la contraseña de aplicación.' });
+    }
+    setIsSendingTest(false);
+  };
+
+  const setGmailPreset = () => {
+    setSmtpConfig(prev => ({
+      ...prev,
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
+      fromName: prev.fromName || 'Aura Servicios Automotrices',
+    }));
+  };
+
+  const setOutlookPreset = () => {
+    setSmtpConfig(prev => ({
+      ...prev,
+      host: 'smtp.office365.com',
+      port: 587,
+      secure: false,
+      fromName: prev.fromName || 'Aura Servicios Automotrices',
+    }));
+  };
+
   return (
     <div style={{ animation: 'fadeIn 0.3s' }}>
-       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+      {/* Header & Status Indicator */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 0.5rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <MailIcon /> Configuración de Notificaciones (Email)
+            <Mail size={22} color="#0284c7" /> Servidor de Correo Electrónico (SMTP)
           </h2>
-          <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.95rem' }}>Configura el servidor SMTP y automatiza el envío de correos electrónicos a clientes y mecánicos.</p>
+          <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+            Gestiona las credenciales del servidor emisor para notificaciones, accesos de clientes y citas.
+          </p>
+        </div>
+
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 14px', borderRadius: '30px',
+          background: smtpConfig.configured ? 'rgba(16,185,129,0.12)' : 'rgba(234,179,8,0.12)',
+          color: smtpConfig.configured ? '#10b981' : '#eab308',
+          border: `1px solid ${smtpConfig.configured ? 'rgba(16,185,129,0.3)' : 'rgba(234,179,8,0.3)'}`,
+          fontWeight: 700, fontSize: '0.9rem'
+        }}>
+          {smtpConfig.configured ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+          {smtpConfig.configured ? '✓ Servidor Configurado y Activo' : '⚠ Configuración Pendiente'}
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '2rem' }}>
+      {/* Feedback Alert Banner */}
+      {feedback && (
+        <div style={{
+          padding: '1rem 1.25rem', borderRadius: '12px', marginBottom: '1.5rem',
+          display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.95rem',
+          background: feedback.type === 'success' ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
+          border: `1px solid ${feedback.type === 'success' ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`,
+          color: feedback.type === 'success' ? '#10b981' : '#ef4444',
+          fontWeight: 600,
+        }}>
+          {feedback.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+          <span>{feedback.message}</span>
+        </div>
+      )}
+
+      {/* Quick Presets */}
+      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+        <button
+          type="button"
+          onClick={setGmailPreset}
+          style={{
+            padding: '6px 14px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 600,
+            background: smtpConfig.host === 'smtp.gmail.com' ? 'rgba(2,132,199,0.2)' : 'var(--bg-secondary)',
+            border: `1px solid ${smtpConfig.host === 'smtp.gmail.com' ? '#0284c7' : 'var(--glass-border)'}`,
+            color: 'var(--text-primary)', cursor: 'pointer'
+          }}
+        >
+          ⚡ Preset: Gmail (Puerto 465 SSL)
+        </button>
+        <button
+          type="button"
+          onClick={setOutlookPreset}
+          style={{
+            padding: '6px 14px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 600,
+            background: smtpConfig.host === 'smtp.office365.com' ? 'rgba(2,132,199,0.2)' : 'var(--bg-secondary)',
+            border: `1px solid ${smtpConfig.host === 'smtp.office365.com' ? '#0284c7' : 'var(--glass-border)'}`,
+            color: 'var(--text-primary)', cursor: 'pointer'
+          }}
+        >
+          ⚡ Preset: Outlook / Office 365 (Puerto 587)
+        </button>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '2rem' }}>
         
-        {/* Config SMTP Form */}
+        {/* Main SMTP Form */}
         <div className="glass-card" style={{ padding: '2rem' }}>
-          <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '1.1rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-            Configuración SMTP
-          </h3>
+          <form onSubmit={handleSave}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '1.25rem', marginBottom: '1.25rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                  Servidor SMTP (Host) <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="smtp.gmail.com"
+                  value={smtpConfig.host}
+                  onChange={(e) => setSmtpConfig({ ...smtpConfig, host: e.target.value })}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--glass-border)', outline: 'none', color: 'var(--text-primary)', background: 'var(--bg-secondary)' }}
+                />
+              </div>
+              <div style={{ minWidth: '100px' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                  Puerto <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input
+                  type="number"
+                  required
+                  placeholder="465"
+                  value={smtpConfig.port}
+                  onChange={(e) => setSmtpConfig({ ...smtpConfig, port: Number(e.target.value) })}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--glass-border)', outline: 'none', color: 'var(--text-primary)', background: 'var(--bg-secondary)' }}
+                />
+              </div>
+            </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>Servidor SMTP <span style={{ color: '#ef4444' }}>*</span></label>
-              <input type="text" defaultValue="smtp.office365.com" style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--glass-border)', outline: 'none', color: 'var(--text-primary)', background: 'var(--bg-secondary)' }} />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>Puerto SMTP <span style={{ color: '#ef4444' }}>*</span></label>
-              <input type="text" defaultValue="587" style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--glass-border)', outline: 'none', color: 'var(--text-primary)', background: 'var(--bg-secondary)' }} />
-            </div>
-          </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.25rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                  Usuario / Correo Emisor <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input
+                  type="email"
+                  required
+                  placeholder="notificaciones@aura.com"
+                  value={smtpConfig.user}
+                  onChange={(e) => setSmtpConfig({ ...smtpConfig, user: e.target.value, fromEmail: e.target.value })}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--glass-border)', outline: 'none', color: 'var(--text-primary)', background: 'var(--bg-secondary)' }}
+                />
+              </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>Usuario SMTP <span style={{ color: '#ef4444' }}>*</span></label>
-              <input type="email" defaultValue="notificaciones@aura.com" style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--glass-border)', outline: 'none', color: 'var(--text-primary)', background: 'var(--bg-secondary)' }} />
+              {/* Password with Eye Toggle */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                  Contraseña / App Password <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    placeholder="Contraseña de aplicación (16 caracteres)"
+                    value={smtpConfig.pass}
+                    onChange={(e) => setSmtpConfig({ ...smtpConfig, pass: e.target.value })}
+                    style={{ width: '100%', padding: '0.75rem 2.5rem 0.75rem 0.75rem', borderRadius: '8px', border: '1px solid var(--glass-border)', outline: 'none', color: 'var(--text-primary)', background: 'var(--bg-secondary)' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    title={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                    style={{
+                      position: 'absolute', right: '0.6rem', top: '50%', transform: 'translateY(-50%)',
+                      background: 'transparent', border: 'none', color: 'var(--text-secondary)',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px'
+                    }}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
             </div>
-            <div style={{ position: 'relative' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>Contraseña SMTP <span style={{ color: '#ef4444' }}>*</span></label>
-              <input type="password" defaultValue="••••••••••••" style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--glass-border)', outline: 'none', color: 'var(--text-primary)', background: 'var(--bg-secondary)' }} />
-              <div style={{ position: 'absolute', right: '1rem', top: '2.2rem', color: 'var(--text-secondary)' }}><EyeIcon /></div>
-            </div>
-          </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>Email del Remitente <span style={{ color: '#ef4444' }}>*</span></label>
-              <input type="email" defaultValue="notificaciones@aura.com" style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--glass-border)', outline: 'none', color: 'var(--text-primary)', background: 'var(--bg-secondary)' }} />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.5rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                  Nombre del Remitente
+                </label>
+                <input
+                  type="text"
+                  placeholder="Aura Servicios Automotrices"
+                  value={smtpConfig.fromName}
+                  onChange={(e) => setSmtpConfig({ ...smtpConfig, fromName: e.target.value })}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--glass-border)', outline: 'none', color: 'var(--text-primary)', background: 'var(--bg-secondary)' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                  Correo de Envío (From)
+                </label>
+                <input
+                  type="email"
+                  placeholder="notificaciones@aura.com"
+                  value={smtpConfig.fromEmail}
+                  onChange={(e) => setSmtpConfig({ ...smtpConfig, fromEmail: e.target.value })}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--glass-border)', outline: 'none', color: 'var(--text-primary)', background: 'var(--bg-secondary)' }}
+                />
+              </div>
             </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>Nombre del Remitente</label>
-              <input type="text" defaultValue="Aura Automotive System" style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--glass-border)', outline: 'none', color: 'var(--text-primary)', background: 'var(--bg-secondary)' }} />
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '2rem' }}>
+              <input
+                type="checkbox"
+                id="secureSslCheck"
+                checked={smtpConfig.secure}
+                onChange={(e) => setSmtpConfig({ ...smtpConfig, secure: e.target.checked })}
+                style={{ width: '18px', height: '18px', accentColor: '#0284c7', cursor: 'pointer' }}
+              />
+              <label htmlFor="secureSslCheck" style={{ fontSize: '0.9rem', color: 'var(--text-primary)', cursor: 'pointer', fontWeight: 500 }}>
+                Usar conexión segura SSL/TLS (Recomendado para puerto 465)
+              </label>
             </div>
-          </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '2.5rem' }}>
-            <input type="checkbox" defaultChecked style={{ width: '18px', height: '18px', accentColor: '#0ea5e9' }} />
-            <span style={{ fontSize: '0.95rem', color: 'var(--text-primary)', fontWeight: 500 }}>Usar conexión segura (SSL/TLS)</span>
-          </div>
+            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+              <button
+                type="submit"
+                disabled={isLoading}
+                style={{
+                  flex: 1, minWidth: '160px', padding: '0.85rem 1.5rem', borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #0284c7 0%, #06b6d4 100%)', color: '#fff',
+                  border: 'none', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                  boxShadow: '0 4px 15px rgba(2,132,199,0.3)', opacity: isLoading ? 0.7 : 1
+                }}
+              >
+                <ShieldCheck size={16} /> {isLoading ? 'Guardando...' : 'Guardar Configuración'}
+              </button>
 
-          <div style={{ display: 'flex', gap: '1rem' }}>
-            <button className="btn-primary" style={{ flex: 1 }}>
-              Guardar Configuración
-            </button>
-            <button style={{ flex: 1, background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--glass-border)', padding: '0.85rem', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}>
-              Probar Conexión
-            </button>
-          </div>
+              <button
+                type="button"
+                onClick={handleTestConnection}
+                disabled={isTesting}
+                style={{
+                  flex: 1, minWidth: '160px', padding: '0.85rem 1.5rem', borderRadius: '10px',
+                  background: 'var(--bg-secondary)', color: 'var(--text-primary)',
+                  border: '1px solid var(--glass-border)', fontWeight: 600, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                  opacity: isTesting ? 0.7 : 1
+                }}
+              >
+                <Zap size={16} color="#eab308" /> {isTesting ? 'Verificando...' : 'Probar Conexión SMTP'}
+              </button>
+            </div>
+          </form>
         </div>
 
-        {/* Right Column: Notification Types & Test */}
+        {/* Right Column: Test Email Sender & Guides */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           
+          {/* Send Test Email Card */}
           <div className="glass-card" style={{ padding: '1.5rem' }}>
             <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.05rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-              Tipos de Notificación
+              <Send size={18} color="#0284c7" /> Enviar Correo de Prueba
             </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {['Habilitar notificaciones globales', 'Creación de órdenes', 'Actualización de estados', 'Asignación de órdenes a mecánicos', 'Comentarios en la orden'].map(txt => (
-                <label key={txt} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
-                  <input type="checkbox" defaultChecked style={{ width: '16px', height: '16px', accentColor: '#0ea5e9' }} />
-                  <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{txt}</span>
-                </label>
-              ))}
-            </div>
+            <p style={{ margin: '0 0 1rem 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              Verifica que el servidor pueda entregar correos en tu bandeja de entrada en tiempo real.
+            </p>
+
+            <form onSubmit={handleSendTestEmail} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <input
+                type="email"
+                required
+                placeholder="tu_correo_personal@ejemplo.com"
+                value={testEmail}
+                onChange={(e) => setTestEmail(e.target.value)}
+                style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--glass-border)', outline: 'none', color: 'var(--text-primary)', background: 'var(--bg-secondary)' }}
+              />
+              <button
+                type="submit"
+                disabled={isSendingTest}
+                style={{
+                  width: '100%', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  color: '#fff', border: 'none', padding: '0.85rem', borderRadius: '8px',
+                  fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                  boxShadow: '0 4px 12px rgba(16,185,129,0.3)', opacity: isSendingTest ? 0.7 : 1
+                }}
+              >
+                <Mail size={16} /> {isSendingTest ? 'Enviando...' : 'Enviar Prueba Ahora'}
+              </button>
+            </form>
           </div>
 
-          <div className="glass-card" style={{ padding: '1.5rem' }}>
-            <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.05rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-              Pruebas
-            </h3>
-            <button style={{ width: '100%', background: '#f97316', color: '#fff', border: 'none', padding: '1rem', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', marginBottom: '0.5rem', boxShadow: '0 4px 12px rgba(249,115,22,0.3)' }}>
-              Probar Escenarios de Email
-            </button>
-            <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
-              Envía emails de prueba para simular los diferentes flujos del sistema.
+          {/* Guide Card */}
+          <div style={{ background: 'rgba(2, 132, 199, 0.08)', border: '1px solid rgba(2, 132, 199, 0.25)', borderRadius: '16px', padding: '1.5rem' }}>
+            <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.95rem', color: '#0284c7', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              💡 ¿Usas Gmail o Google Workspace?
+            </h4>
+            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+              Google no permite usar la contraseña estándar de tu correo. Debes generar una <strong>Contraseña de Aplicación</strong> de 16 letras desde <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer" style={{ color: '#0284c7', fontWeight: 600 }}>myaccount.google.com/apppasswords</a> (requiere tener activa la verificación en 2 pasos de Google).
             </p>
           </div>
 
-          <div style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '16px', padding: '1.5rem' }}>
-            <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: '#d97706' }}>💡 Configuración de Gmail</h4>
-            <p style={{ margin: 0, fontSize: '0.85rem', color: '#b45309', lineHeight: 1.5 }}>
-              Para cuentas de Gmail, usa una &quot;App Password&quot; (Contraseña de aplicación) en lugar de tu contraseña normal. Recuerda habilitar la autenticación de 2 factores en tu cuenta de Google.
-            </p>
+          {/* Encryption Note */}
+          <div style={{ background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '16px', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.85rem', color: '#10b981' }}>
+            <ShieldCheck size={20} />
+            <span>Tus credenciales se almacenan con cifrado industrial <strong>AES-256-CBC</strong> en base de datos.</span>
           </div>
 
         </div>

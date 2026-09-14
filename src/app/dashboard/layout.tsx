@@ -19,8 +19,27 @@ import {
   Bell,
   Menu,
   X,
-  ChevronLeft
+  ChevronLeft,
+  UserCheck,
+  Clock,
+  Car,
+  ExternalLink,
+  CheckCircle2
 } from 'lucide-react';
+import { safeFetch } from '../../lib/api-config';
+
+interface AccessRequestNotificationItem {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role?: string;
+  vehicleBrand?: string;
+  vehicleModel?: string;
+  vehicleYear?: number;
+  vehiclePlates?: string;
+  status: string;
+}
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated, isLoading, logout, hasPermission } = useAuth();
@@ -32,6 +51,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [mounted, setMounted] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [isNotifPopoverOpen, setIsNotifPopoverOpen] = useState(false);
+  const [accessRequests, setAccessRequests] = useState<AccessRequestNotificationItem[]>([]);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [approvalMsg, setApprovalMsg] = useState<string | null>(null);
+
+  const isClient = user?.roles?.some(r => r.role?.name === 'Cliente') ?? false;
 
   useEffect(() => {
     setMounted(true);
@@ -61,6 +85,54 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       router.push('/login');
     }
   }, [isLoading, isAuthenticated, router]);
+
+  // Strict route protection for Cliente role: can ONLY access their vehicles and bookings
+  useEffect(() => {
+    if (mounted && !isLoading && isAuthenticated && isClient) {
+      const allowedPaths = ['/dashboard/vehicles', '/dashboard/bookings'];
+      const isAllowed = allowedPaths.some(p => pathname.startsWith(p));
+      if (!isAllowed) {
+        router.replace('/dashboard/vehicles');
+      }
+    }
+  }, [mounted, isLoading, isAuthenticated, isClient, pathname, router]);
+
+  // Polling access requests for administrators
+  const fetchAccessRequests = async () => {
+    if (isClient) return;
+    const { ok, data } = await safeFetch<AccessRequestNotificationItem[]>('/users/access-requests');
+    if (ok && Array.isArray(data)) {
+      setAccessRequests(data);
+    }
+  };
+
+  useEffect(() => {
+    if (mounted && isAuthenticated && !isClient) {
+      fetchAccessRequests();
+      const interval = setInterval(fetchAccessRequests, 12000);
+      return () => clearInterval(interval);
+    }
+  }, [mounted, isAuthenticated, isClient]);
+
+  const handleQuickApprove = async (reqId: string, name: string) => {
+    setApprovingId(reqId);
+    try {
+      const { ok, data, error } = await safeFetch<{ message: string }>(`/users/access-requests/${reqId}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ loginUrl: `${window.location.origin}/login` })
+      });
+      if (ok && data) {
+        setApprovalMsg(`¡Accesos enviados a ${name}!`);
+        setTimeout(() => setApprovalMsg(null), 4000);
+        fetchAccessRequests();
+      } else {
+        alert(error || 'Error al aprobar solicitud');
+      }
+    } finally {
+      setApprovingId(null);
+    }
+  };
 
   if (!mounted || isLoading || !isAuthenticated) {
     return (
@@ -105,7 +177,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       glow: 'rgba(139, 92, 246, 0.35)'
     },
     {
-      label: 'Vehículos',
+      label: isClient ? 'Mis Vehículos' : 'Vehículos',
       path: '/dashboard/vehicles',
       permission: 'VIEW_VEHICLES',
       icon: CarFront,
@@ -132,7 +204,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       glow: 'rgba(236, 72, 153, 0.35)'
     },
     {
-      label: 'Solicitudes A Domicilio',
+      label: isClient ? 'Mis Citas / Servicios' : 'Solicitudes A Domicilio',
       path: '/dashboard/bookings',
       permission: 'VIEW_TICKETS',
       icon: CalendarRange,
@@ -151,7 +223,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     },
   ];
 
-  const allowedNavItems = navItems.filter(item => hasPermission(item.permission));
+  // Strictly filter items for Cliente to only their 2 permitted modules
+  const allowedNavItems = navItems.filter(item => {
+    if (isClient) {
+      return item.path === '/dashboard/vehicles' || item.path === '/dashboard/bookings';
+    }
+    return hasPermission(item.permission);
+  });
+
+  const pendingRequests = accessRequests.filter(r => r.status === 'PENDING');
   const currentNavItem = navItems.find(item => item.path === pathname);
 
   return (
@@ -421,25 +501,119 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 }}
               >
                 <Bell size={20} />
-                <span style={{
-                  position: 'absolute', top: '4px', right: '4px', width: '8px', height: '8px',
-                  backgroundColor: '#ef4444', borderRadius: '50%'
-                }}></span>
+                {!isClient && pendingRequests.length > 0 ? (
+                  <span style={{
+                    position: 'absolute', top: '-4px', right: '-4px', minWidth: '18px', height: '18px',
+                    padding: '0 4px', backgroundColor: '#ef4444', color: '#ffffff', borderRadius: '9999px',
+                    fontSize: '10px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: '0 0 8px rgba(239, 68, 68, 0.6)'
+                  }}>
+                    {pendingRequests.length}
+                  </span>
+                ) : null}
               </button>
 
               {/* Notification Popover */}
               {isNotifPopoverOpen && (
                 <div style={{
-                  position: 'absolute', top: '100%', right: 0, marginTop: '0.5rem', width: '320px', maxWidth: '90vw',
+                  position: 'absolute', top: '100%', right: 0, marginTop: '0.5rem', width: '380px', maxWidth: '92vw',
                   backgroundColor: 'var(--glass-bg)', border: '1px solid var(--glass-border)',
-                  borderRadius: '20px', boxShadow: '0 10px 40px rgba(0,0,0,0.15)', zIndex: 60,
-                  overflow: 'hidden', padding: '16px'
+                  backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)',
+                  borderRadius: '20px', boxShadow: '0 15px 50px rgba(0,0,0,0.25)', zIndex: 120,
+                  overflow: 'hidden', padding: '18px'
                 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                    <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: 'var(--text-primary)' }}>Notificaciones</h3>
-                    <button style={{ background: 'transparent', border: 'none', color: '#0284c7', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}>Leído</button>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid var(--glass-border)', paddingBottom: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Bell size={16} style={{ color: '#0284c7' }} />
+                      <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: 'var(--text-primary)' }}>
+                        {isClient ? 'Mis Notificaciones' : 'Solicitudes de Acceso'}
+                      </h3>
+                    </div>
+                    {!isClient && pendingRequests.length > 0 && (
+                      <span style={{ fontSize: '11px', fontWeight: 700, background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', padding: '2px 8px', borderRadius: '9999px' }}>
+                        {pendingRequests.length} nuevas
+                      </span>
+                    )}
                   </div>
-                  <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Sistema operando normalmente. Sin notificaciones críticas pendientes.</p>
+
+                  {approvalMsg && (
+                    <div style={{ marginBottom: '12px', padding: '10px 12px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.3)', color: '#10b981', fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <CheckCircle2 size={15} />
+                      <span>{approvalMsg}</span>
+                    </div>
+                  )}
+
+                  {!isClient ? (
+                    pendingRequests.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '20px 10px', color: 'var(--text-secondary)', fontSize: '13px' }}>
+                        <Clock size={28} style={{ margin: '0 auto 8px', color: '#94a3b8', opacity: 0.6 }} />
+                        <p style={{ margin: 0, fontWeight: 500 }}>No hay solicitudes de acceso pendientes.</p>
+                        <p style={{ margin: '4px 0 0', fontSize: '11px', opacity: 0.8 }}>Todas las solicitudes han sido procesadas.</p>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '320px', overflowY: 'auto', paddingRight: '4px' }}>
+                        {pendingRequests.map(req => (
+                          <div key={req.id} style={{
+                            padding: '12px', borderRadius: '12px', background: 'rgba(0,0,0,0.03)',
+                            border: '1px solid var(--glass-border)', display: 'flex', flexDirection: 'column', gap: '6px'
+                          }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                              <div>
+                                <span style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)' }}>{req.firstName} {req.lastName}</span>
+                                <p style={{ margin: '2px 0 0', fontSize: '11px', color: 'var(--text-secondary)' }}>{req.email}</p>
+                              </div>
+                              <span style={{ fontSize: '10px', fontWeight: 700, background: 'rgba(14, 165, 233, 0.12)', color: '#0ea5e9', padding: '2px 6px', borderRadius: '6px' }}>
+                                {req.role || 'Cliente'}
+                              </span>
+                            </div>
+
+                            {req.vehicleBrand && (
+                              <div style={{ fontSize: '11px', color: 'var(--text-primary)', background: 'rgba(2, 132, 199, 0.08)', padding: '6px 8px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <Car size={13} style={{ color: '#0284c7' }} />
+                                <span><b>{req.vehicleBrand} {req.vehicleModel} {req.vehicleYear || ''}</b> {req.vehiclePlates ? `• Placas: ${req.vehiclePlates}` : ''}</span>
+                              </div>
+                            )}
+
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
+                              <button
+                                onClick={() => handleQuickApprove(req.id, `${req.firstName} ${req.lastName}`)}
+                                disabled={approvingId === req.id}
+                                style={{
+                                  padding: '6px 12px', borderRadius: '8px', border: 'none',
+                                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                  color: '#ffffff', fontSize: '11px', fontWeight: 700, cursor: approvingId === req.id ? 'not-allowed' : 'pointer',
+                                  display: 'flex', alignItems: 'center', gap: '5px'
+                                }}
+                              >
+                                <UserCheck size={13} />
+                                {approvingId === req.id ? 'Enviando...' : 'Aprobar y Enviar Accesos'}
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+
+                        <Link 
+                          href="/dashboard/users" 
+                          onClick={() => setIsNotifPopoverOpen(false)}
+                          style={{
+                            textAlign: 'center', padding: '8px', fontSize: '12px', color: '#0284c7',
+                            fontWeight: 700, textDecoration: 'none', borderTop: '1px solid var(--glass-border)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '4px'
+                          }}
+                        >
+                          <span>Administrar todas las solicitudes</span>
+                          <ExternalLink size={13} />
+                        </Link>
+                      </div>
+                    )
+                  ) : (
+                    <div style={{ padding: '12px', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                      <p style={{ margin: 0, fontWeight: 600, color: 'var(--text-primary)' }}>¡Bienvenido a AURA Portal Cliente!</p>
+                      <p style={{ margin: '6px 0 0', fontSize: '12px' }}>
+                        Aquí puedes dar de alta tus automóviles con fotos, consultar tus mantenimientos y agendar nuevos servicios.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

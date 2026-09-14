@@ -45,15 +45,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Load or initialize roles permissions config
     const defaultRolesConfig = {
-      'Super Admin': ['VIEW_OVERVIEW', 'VIEW_WORKSHOPS', 'VIEW_ROLES', 'VIEW_VEHICLES', 'VIEW_USERS', 'VIEW_SETTINGS', 'VIEW_SURVEYS'],
-      'Administrador': ['VIEW_OVERVIEW', 'VIEW_WORKSHOPS', 'VIEW_VEHICLES', 'VIEW_USERS', 'VIEW_SETTINGS', 'VIEW_SURVEYS'],
-      'Mecánico': ['VIEW_OVERVIEW', 'VIEW_VEHICLES'],
-      'Cliente': ['VIEW_OVERVIEW']
+      'Super Admin': ['VIEW_OVERVIEW', 'VIEW_WORKSHOPS', 'VIEW_ROLES', 'VIEW_VEHICLES', 'VIEW_USERS', 'VIEW_SETTINGS', 'VIEW_SURVEYS', 'VIEW_TICKETS'],
+      'Administrador': ['VIEW_OVERVIEW', 'VIEW_WORKSHOPS', 'VIEW_VEHICLES', 'VIEW_USERS', 'VIEW_SETTINGS', 'VIEW_SURVEYS', 'VIEW_TICKETS'],
+      'Mecánico': ['VIEW_VEHICLES', 'VIEW_TICKETS'],
+      'Cliente': ['VIEW_VEHICLES', 'VIEW_TICKETS']
     };
     
     const stored = localStorage.getItem('aura-roles-config');
     if (stored) {
-      setRolesConfig(JSON.parse(stored));
+      try {
+        const parsed = JSON.parse(stored);
+        // Ensure Cliente never has administrative permissions
+        parsed['Cliente'] = ['VIEW_VEHICLES', 'VIEW_TICKETS'];
+        setRolesConfig(parsed);
+        localStorage.setItem('aura-roles-config', JSON.stringify(parsed));
+      } catch {
+        setRolesConfig(defaultRolesConfig);
+      }
     } else {
       localStorage.setItem('aura-roles-config', JSON.stringify(defaultRolesConfig));
       setRolesConfig(defaultRolesConfig);

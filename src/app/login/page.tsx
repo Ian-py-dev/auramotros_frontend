@@ -26,6 +26,44 @@ export default function LoginPage() {
   const [resetSuccess, setResetSuccess] = useState(false);
   const [resetError, setResetError] = useState('');
 
+  // Access Request Modal
+  const [showAccessModal, setShowAccessModal] = useState(false);
+  const [accessForm, setAccessForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    role: 'Cliente',
+    vehicleBrand: '',
+    vehicleModel: '',
+    vehicleYear: new Date().getFullYear(),
+    vehiclePlates: '',
+    lastMaintenanceDate: ''
+  });
+  const [isSubmittingAccess, setIsSubmittingAccess] = useState(false);
+  const [accessSuccess, setAccessSuccess] = useState(false);
+  const [accessError, setAccessError] = useState('');
+
+  const handleAccessSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingAccess(true);
+    setAccessError('');
+    setAccessSuccess(false);
+
+    const { ok, data, error } = await safeFetch<{ message?: string }>('/users/access-requests', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(accessForm),
+    });
+
+    if (ok) {
+      setAccessSuccess(true);
+    } else {
+      setAccessError(data?.message || error || 'Error al enviar la solicitud de acceso.');
+    }
+    setIsSubmittingAccess(false);
+  };
+
   useEffect(() => {
     const savedLang = localStorage.getItem('aura-lang') as LangType;
     if (savedLang === 'es' || savedLang === 'en') {
@@ -358,10 +396,25 @@ export default function LoginPage() {
           >
             {isLoading ? currentT.submitting : currentT.submit}
           </button>
+
+          {/* Link to Request Access */}
+          <div style={{ marginTop: '1.25rem', textAlign: 'center' }}>
+            <span style={{ color: '#94a3b8', fontSize: '0.9rem' }}>¿No tienes una cuenta? </span>
+            <button
+              type="button"
+              onClick={() => { setShowAccessModal(true); setAccessSuccess(false); setAccessError(''); }}
+              style={{
+                background: 'none', border: 'none', color: '#38bdf8', fontWeight: 700,
+                fontSize: '0.9rem', cursor: 'pointer', textDecoration: 'underline'
+              }}
+            >
+              Solicitar Acceso
+            </button>
+          </div>
         </form>
 
         {/* Security Badge */}
-        <div style={{ marginTop: '2rem', display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontSize: '12px', fontWeight: 600 }}>
+        <div style={{ marginTop: '1.75rem', display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontSize: '12px', fontWeight: 600 }}>
           <ShieldCheck size={14} style={{ color: '#38bdf8' }} />
           Conexión Segura SSL 256-bit
         </div>
@@ -407,6 +460,207 @@ export default function LoginPage() {
                   style={{ width: '100%', padding: '12px', borderRadius: '10px', background: 'linear-gradient(135deg, #0284c7 0%, #06b6d4 100%)', color: '#ffffff', fontWeight: 700, border: 'none', cursor: 'pointer' }}
                 >
                   {currentT.resetBtn}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Access Request Modal */}
+      {showAccessModal && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          backgroundColor: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', padding: '20px'
+        }}>
+          <div className="glass-card" style={{
+            background: 'rgba(13, 18, 34, 0.96)',
+            borderRadius: '24px', width: '100%', maxWidth: '520px', maxHeight: '90vh', overflowY: 'auto',
+            border: '1px solid rgba(56, 189, 248, 0.3)', padding: '32px', position: 'relative'
+          }}>
+            <button
+              onClick={() => setShowAccessModal(false)}
+              style={{
+                position: 'absolute', top: '16px', right: '16px',
+                background: 'rgba(255,255,255,0.08)', border: 'none', color: '#94a3b8',
+                width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer',
+                fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}
+            >
+              ✕
+            </button>
+
+            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+              <div style={{
+                display: 'inline-flex', padding: '6px 14px', borderRadius: '20px',
+                background: 'rgba(2, 132, 199, 0.15)', border: '1px solid rgba(2, 132, 199, 0.3)',
+                color: '#38bdf8', fontSize: '0.8rem', fontWeight: 700, marginBottom: '8px'
+              }}>
+                Nuevo Registro
+              </div>
+              <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#ffffff', margin: 0 }}>
+                Solicitar Acceso a Aura
+              </h3>
+              <p style={{ color: '#94a3b8', fontSize: '13px', marginTop: '6px' }}>
+                Tu cuenta será revisada y aprobada por un administrador antes de habilitarse.
+              </p>
+            </div>
+
+            {accessSuccess ? (
+              <div style={{
+                textAlign: 'center', padding: '24px 16px', background: 'rgba(16, 185, 129, 0.12)',
+                border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '16px'
+              }}>
+                <div style={{ fontSize: '40px', marginBottom: '12px' }}>🎉</div>
+                <h4 style={{ fontSize: '18px', fontWeight: 800, color: '#10b981', margin: '0 0 8px 0' }}>
+                  ¡Solicitud Enviada con Éxito!
+                </h4>
+                <p style={{ color: '#cbd5e1', fontSize: '14px', lineHeight: 1.5, margin: '0 0 16px 0' }}>
+                  Hemos recibido tu solicitud para <strong>{accessForm.email}</strong>. En cuanto sea aprobada, recibirás tus credenciales por correo electrónico.
+                </p>
+                <button
+                  onClick={() => setShowAccessModal(false)}
+                  style={{
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    color: '#fff', border: 'none', padding: '10px 24px', borderRadius: '20px',
+                    fontWeight: 700, cursor: 'pointer', fontSize: '14px'
+                  }}
+                >
+                  Entendido, Cerrar
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleAccessSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {accessError && (
+                  <div style={{
+                    padding: '10px 14px', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.15)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', fontSize: '13px', fontWeight: 600
+                  }}>
+                    ✕ {accessError}
+                  </div>
+                )}
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div>
+                    <label style={{ display: 'block', color: '#cbd5e1', fontSize: '13px', fontWeight: 600, marginBottom: '4px' }}>
+                      Nombre <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Juan"
+                      value={accessForm.firstName}
+                      onChange={(e) => setAccessForm({ ...accessForm, firstName: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', background: 'rgba(2, 6, 23, 0.7)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', outline: 'none' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', color: '#cbd5e1', fontSize: '13px', fontWeight: 600, marginBottom: '4px' }}>
+                      Apellido <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Pérez"
+                      value={accessForm.lastName}
+                      onChange={(e) => setAccessForm({ ...accessForm, lastName: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', background: 'rgba(2, 6, 23, 0.7)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', outline: 'none' }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', color: '#cbd5e1', fontSize: '13px', fontWeight: 600, marginBottom: '4px' }}>
+                    Correo Electrónico <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="tu@correo.com"
+                    value={accessForm.email}
+                    onChange={(e) => setAccessForm({ ...accessForm, email: e.target.value })}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', background: 'rgba(2, 6, 23, 0.7)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', outline: 'none' }}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div>
+                    <label style={{ display: 'block', color: '#cbd5e1', fontSize: '13px', fontWeight: 600, marginBottom: '4px' }}>
+                      Teléfono
+                    </label>
+                    <input
+                      type="tel"
+                      placeholder="55 1234 5678"
+                      value={accessForm.phone}
+                      onChange={(e) => setAccessForm({ ...accessForm, phone: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', background: 'rgba(2, 6, 23, 0.7)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', outline: 'none' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', color: '#cbd5e1', fontSize: '13px', fontWeight: 600, marginBottom: '4px' }}>
+                      Tipo de Perfil
+                    </label>
+                    <select
+                      value={accessForm.role}
+                      onChange={(e) => setAccessForm({ ...accessForm, role: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', background: 'rgba(2, 6, 23, 0.7)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', outline: 'none' }}
+                    >
+                      <option value="Cliente">Cliente (Dueño de vehículo)</option>
+                      <option value="Asesor">Asesor / Colaborador</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ padding: '12px', borderRadius: '10px', background: 'rgba(2, 132, 199, 0.08)', border: '1px solid rgba(2, 132, 199, 0.2)' }}>
+                  <h5 style={{ margin: '0 0 6px 0', fontSize: '13px', color: '#38bdf8', fontWeight: 700 }}>
+                    🚗 Datos de tu Auto (Opcional)
+                  </h5>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+                    <input
+                      type="text"
+                      placeholder="Marca"
+                      value={accessForm.vehicleBrand}
+                      onChange={(e) => setAccessForm({ ...accessForm, vehicleBrand: e.target.value })}
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', background: 'rgba(2, 6, 23, 0.6)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', outline: 'none', fontSize: '12px' }}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Modelo"
+                      value={accessForm.vehicleModel}
+                      onChange={(e) => setAccessForm({ ...accessForm, vehicleModel: e.target.value })}
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', background: 'rgba(2, 6, 23, 0.6)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', outline: 'none', fontSize: '12px' }}
+                    />
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <input
+                      type="number"
+                      placeholder="Año"
+                      value={accessForm.vehicleYear || ''}
+                      onChange={(e) => setAccessForm({ ...accessForm, vehicleYear: Number(e.target.value) })}
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', background: 'rgba(2, 6, 23, 0.6)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', outline: 'none', fontSize: '12px' }}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Placas"
+                      value={accessForm.vehiclePlates}
+                      onChange={(e) => setAccessForm({ ...accessForm, vehiclePlates: e.target.value })}
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', background: 'rgba(2, 6, 23, 0.6)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', outline: 'none', fontSize: '12px' }}
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmittingAccess}
+                  style={{
+                    marginTop: '8px', padding: '12px', borderRadius: '20px',
+                    background: 'linear-gradient(135deg, #0284c7 0%, #06b6d4 100%)',
+                    color: '#fff', border: 'none', fontWeight: 700, fontSize: '14px',
+                    cursor: 'pointer', boxShadow: '0 4px 15px rgba(2, 132, 199, 0.4)',
+                    opacity: isSubmittingAccess ? 0.7 : 1
+                  }}
+                >
+                  {isSubmittingAccess ? 'Enviando...' : 'Enviar Solicitud'}
                 </button>
               </form>
             )}
