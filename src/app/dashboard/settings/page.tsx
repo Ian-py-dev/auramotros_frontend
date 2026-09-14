@@ -636,13 +636,25 @@ function EmailTab() {
     }));
   };
 
+  const setResendPreset = () => {
+    setSmtpConfig(prev => ({
+      ...prev,
+      host: 'api.resend.com',
+      port: 443,
+      user: 'resend',
+      secure: true,
+      fromEmail: prev.fromEmail && prev.fromEmail.includes('@') && !prev.fromEmail.includes('gmail') && !prev.fromEmail.includes('outlook') ? prev.fromEmail : 'onboarding@resend.dev',
+      fromName: prev.fromName || 'Aura Servicios Automotrices',
+    }));
+  };
+
   return (
     <div style={{ animation: 'fadeIn 0.3s' }}>
       {/* Header & Status Indicator */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 0.5rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Mail size={22} color="#0284c7" /> Servidor de Correo Electrónico (SMTP)
+            <Mail size={22} color="#0284c7" /> Servidor de Correo Electrónico (SMTP / API)
           </h2>
           <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
             Gestiona las credenciales del servidor emisor para notificaciones, accesos de clientes y citas.
@@ -689,6 +701,18 @@ function EmailTab() {
           }}
         >
           ⚡ Preset: Gmail (Puerto 465 SSL)
+        </button>
+        <button
+          type="button"
+          onClick={setResendPreset}
+          style={{
+            padding: '6px 14px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 600,
+            background: smtpConfig.host === 'api.resend.com' ? 'rgba(16,185,129,0.2)' : 'var(--bg-secondary)',
+            border: `1px solid ${smtpConfig.host === 'api.resend.com' ? '#10b981' : 'var(--glass-border)'}`,
+            color: 'var(--text-primary)', cursor: 'pointer'
+          }}
+        >
+          🚀 Preset: Resend (HTTPS Puerto 443 - Cloud)
         </button>
         <button
           type="button"
@@ -741,14 +765,14 @@ function EmailTab() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.25rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-                  Usuario / Correo Emisor <span style={{ color: '#ef4444' }}>*</span>
+                  {smtpConfig.host === 'api.resend.com' ? 'Identificador de Usuario' : 'Usuario / Correo Emisor'} <span style={{ color: '#ef4444' }}>*</span>
                 </label>
                 <input
-                  type="email"
+                  type={smtpConfig.host === 'api.resend.com' ? 'text' : 'email'}
                   required
-                  placeholder="notificaciones@aura.com"
+                  placeholder={smtpConfig.host === 'api.resend.com' ? 'resend' : 'notificaciones@aura.com'}
                   value={smtpConfig.user}
-                  onChange={(e) => setSmtpConfig({ ...smtpConfig, user: e.target.value, fromEmail: e.target.value })}
+                  onChange={(e) => setSmtpConfig({ ...smtpConfig, user: e.target.value, fromEmail: smtpConfig.host === 'api.resend.com' ? smtpConfig.fromEmail : e.target.value })}
                   style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--glass-border)', outline: 'none', color: 'var(--text-primary)', background: 'var(--bg-secondary)' }}
                 />
               </div>
@@ -756,13 +780,13 @@ function EmailTab() {
               {/* Password with Eye Toggle */}
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-                  Contraseña / App Password <span style={{ color: '#ef4444' }}>*</span>
+                  {smtpConfig.host === 'api.resend.com' ? 'API Key de Resend (re_...)' : 'Contraseña / App Password'} <span style={{ color: '#ef4444' }}>*</span>
                 </label>
                 <div style={{ position: 'relative' }}>
                   <input
                     type={showPassword ? 'text' : 'password'}
                     required
-                    placeholder="Contraseña de aplicación (16 caracteres)"
+                    placeholder={smtpConfig.host === 'api.resend.com' ? 're_123456789abcdef...' : 'Contraseña de aplicación (16 caracteres)'}
                     value={smtpConfig.pass}
                     onChange={(e) => setSmtpConfig({ ...smtpConfig, pass: e.target.value })}
                     style={{ width: '100%', padding: '0.75rem 2.5rem 0.75rem 0.75rem', borderRadius: '8px', border: '1px solid var(--glass-border)', outline: 'none', color: 'var(--text-primary)', background: 'var(--bg-secondary)' }}
@@ -774,7 +798,7 @@ function EmailTab() {
                     style={{
                       position: 'absolute', right: '0.6rem', top: '50%', transform: 'translateY(-50%)',
                       background: 'transparent', border: 'none', color: 'var(--text-secondary)',
-                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px'
+                      cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center'
                     }}
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -783,7 +807,8 @@ function EmailTab() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.5rem' }}>
+            {/* Sender Name & From Email */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.25rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
                   Nombre del Remitente
@@ -796,13 +821,14 @@ function EmailTab() {
                   style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--glass-border)', outline: 'none', color: 'var(--text-primary)', background: 'var(--bg-secondary)' }}
                 />
               </div>
+
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
                   Correo de Envío (From)
                 </label>
                 <input
                   type="email"
-                  placeholder="notificaciones@aura.com"
+                  placeholder={smtpConfig.host === 'api.resend.com' ? 'onboarding@resend.dev' : 'notificaciones@aura.com'}
                   value={smtpConfig.fromEmail}
                   onChange={(e) => setSmtpConfig({ ...smtpConfig, fromEmail: e.target.value })}
                   style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--glass-border)', outline: 'none', color: 'var(--text-primary)', background: 'var(--bg-secondary)' }}
@@ -810,7 +836,8 @@ function EmailTab() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '2rem' }}>
+            {/* Secure SSL Toggle */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
               <input
                 type="checkbox"
                 id="secureSslCheck"
@@ -819,7 +846,7 @@ function EmailTab() {
                 style={{ width: '18px', height: '18px', accentColor: '#0284c7', cursor: 'pointer' }}
               />
               <label htmlFor="secureSslCheck" style={{ fontSize: '0.9rem', color: 'var(--text-primary)', cursor: 'pointer', fontWeight: 500 }}>
-                Usar conexión segura SSL/TLS (Recomendado para puerto 465)
+                Usar conexión segura SSL/TLS (Recomendado para puerto 465 y Resend HTTPS)
               </label>
             </div>
 
@@ -849,7 +876,7 @@ function EmailTab() {
                   opacity: isTesting ? 0.7 : 1
                 }}
               >
-                <Zap size={16} color="#eab308" /> {isTesting ? 'Verificando...' : 'Probar Conexión SMTP'}
+                <Zap size={16} color="#eab308" /> {isTesting ? 'Verificando...' : 'Probar Conexión'}
               </button>
             </div>
           </form>
@@ -863,7 +890,7 @@ function EmailTab() {
             <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.05rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Send size={18} color="#0284c7" /> Enviar Correo de Prueba
             </h3>
-            <p style={{ margin: '0 0 1rem 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+            <p style={{ margin: 0, marginBottom: '1rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
               Verifica que el servidor pueda entregar correos en tu bandeja de entrada en tiempo real.
             </p>
 
@@ -891,13 +918,33 @@ function EmailTab() {
             </form>
           </div>
 
-          {/* Guide Card */}
-          <div style={{ background: 'rgba(2, 132, 199, 0.08)', border: '1px solid rgba(2, 132, 199, 0.25)', borderRadius: '16px', padding: '1.5rem' }}>
+          {/* Guide Card: Resend API */}
+          <div style={{ background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: '16px', padding: '1.25rem' }}>
+            <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.95rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              🚀 Recomendado para Railway: Resend API
+            </h4>
+            <p style={{ margin: 0, fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+              Los servidores cloud como Railway nunca bloquean el tráfico HTTPS (Puerto 443). Crea una cuenta gratuita en <a href="https://resend.com" target="_blank" rel="noreferrer" style={{ color: '#10b981', fontWeight: 600 }}>resend.com</a>, copia tu <strong>API Key (re_...)</strong> y envía hasta 3,000 correos al mes gratis sin bloqueos de puertos.
+            </p>
+          </div>
+
+          {/* Guide Card: Gmail */}
+          <div style={{ background: 'rgba(2, 132, 199, 0.08)', border: '1px solid rgba(2, 132, 199, 0.25)', borderRadius: '16px', padding: '1.25rem' }}>
             <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.95rem', color: '#0284c7', display: 'flex', alignItems: 'center', gap: '6px' }}>
               💡 ¿Usas Gmail o Google Workspace?
             </h4>
-            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-              Google no permite usar la contraseña estándar de tu correo. Debes generar una <strong>Contraseña de Aplicación</strong> de 16 letras desde <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer" style={{ color: '#0284c7', fontWeight: 600 }}>myaccount.google.com/apppasswords</a> (requiere tener activa la verificación en 2 pasos de Google).
+            <p style={{ margin: 0, fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+              Usa el preset de <strong>Gmail (Puerto 465 SSL)</strong>. Requiere generar una <strong>Contraseña de Aplicación</strong> de 16 letras desde <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer" style={{ color: '#0284c7', fontWeight: 600 }}>myaccount.google.com/apppasswords</a> (requiere tener activa la verificación en 2 pasos).
+            </p>
+          </div>
+
+          {/* Warning Card: Outlook */}
+          <div style={{ background: 'rgba(234, 179, 8, 0.08)', border: '1px solid rgba(234, 179, 8, 0.25)', borderRadius: '16px', padding: '1.25rem' }}>
+            <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: '#eab308', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              ⚠️ Nota sobre Outlook / Office 365
+            </h4>
+            <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+              Microsoft bloquea por seguridad las conexiones SMTP básicas (puerto 587) originadas desde servidores cloud. Si experimentas &quot;Connection timeout&quot; con Outlook, utiliza Gmail o Resend.
             </p>
           </div>
 
