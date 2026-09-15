@@ -752,6 +752,31 @@ function EmailTab() {
         </button>
       </div>
 
+      {/* Cloud Port Timeout Explanation Banner */}
+      <div style={{
+        padding: '14px 18px',
+        borderRadius: '14px',
+        backgroundColor: 'rgba(234, 179, 8, 0.08)',
+        border: '1px solid rgba(234, 179, 8, 0.25)',
+        marginBottom: '1.5rem',
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: '12px',
+        fontSize: '13px'
+      }}>
+        <AlertCircle size={18} style={{ color: '#eab308', flexShrink: 0, marginTop: '2px' }} />
+        <div>
+          <p style={{ margin: '0 0 4px 0', fontWeight: 700, color: '#f59e0b' }}>
+            ¿Por qué Gmail da &quot;Connection timeout&quot; al enviar credenciales en producción?
+          </p>
+          <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+            Los servidores de <strong>Railway</strong> bloquean por defecto la salida de tráfico por los puertos SMTP 25, 465 y 587 para evitar spam, impidiendo la conexión directa con Google.
+            <br />
+            <strong>Solución recomendada:</strong> Haz clic en el botón <strong>&quot;✉️ Preset: Brevo&quot;</strong> e ingresa tu API Key gratuita de Brevo (empieza con <code style={{ color: '#38bdf8' }}>xkeysib-...</code>). Al operar por HTTPS (puerto 443), Railway nunca lo bloquea y envía hasta 300 correos diarios a Hotmail, Gmail o cualquier destinatario al instante.
+          </p>
+        </div>
+      </div>
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '2rem' }}>
         
         {/* Main SMTP Form */}

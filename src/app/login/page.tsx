@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth, User } from '../../lib/auth-context';
 import { safeFetch } from '../../lib/api-config';
-import { Eye, EyeOff, ShieldAlert, ShieldCheck, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, ShieldAlert, ShieldCheck, ArrowLeft, Car } from 'lucide-react';
+import { CAR_CATALOG } from '../../lib/car-catalog';
 
 type LangType = 'es' | 'en';
 
@@ -40,6 +41,8 @@ export default function LoginPage() {
     vehiclePlates: '',
     lastMaintenanceDate: ''
   });
+  const [accessSelectedBrand, setAccessSelectedBrand] = useState('');
+  const [accessSelectedModel, setAccessSelectedModel] = useState('');
   const [isSubmittingAccess, setIsSubmittingAccess] = useState(false);
   const [accessSuccess, setAccessSuccess] = useState(false);
   const [accessError, setAccessError] = useState('');
@@ -612,24 +615,157 @@ export default function LoginPage() {
                 </div>
 
                 <div style={{ padding: '12px', borderRadius: '10px', background: 'rgba(2, 132, 199, 0.08)', border: '1px solid rgba(2, 132, 199, 0.2)' }}>
-                  <h5 style={{ margin: '0 0 6px 0', fontSize: '13px', color: '#38bdf8', fontWeight: 700 }}>
-                    🚗 Datos de tu Auto (Opcional)
+                  <h5 style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#38bdf8', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Car size={15} />
+                    <span>Datos de tu Auto (Opcional)</span>
                   </h5>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
-                    <input
-                      type="text"
-                      placeholder="Marca"
-                      value={accessForm.vehicleBrand}
-                      onChange={(e) => setAccessForm({ ...accessForm, vehicleBrand: e.target.value })}
-                      style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', background: 'rgba(2, 6, 23, 0.6)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', outline: 'none', fontSize: '12px' }}
-                    />
-                    <input
-                      type="text"
-                      placeholder="Modelo"
-                      value={accessForm.vehicleModel}
-                      onChange={(e) => setAccessForm({ ...accessForm, vehicleModel: e.target.value })}
-                      style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', background: 'rgba(2, 6, 23, 0.6)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', outline: 'none', fontSize: '12px' }}
-                    />
+                    {/* Brand Selector */}
+                    <div>
+                      <select
+                        value={accessSelectedBrand}
+                        onChange={(e) => {
+                          const b = e.target.value;
+                          setAccessSelectedBrand(b);
+                          if (b === 'OTRA') {
+                            setAccessForm((prev) => ({ ...prev, vehicleBrand: '', vehicleModel: '' }));
+                            setAccessSelectedModel('OTRO');
+                          } else {
+                            setAccessForm((prev) => ({ ...prev, vehicleBrand: b, vehicleModel: '' }));
+                            setAccessSelectedModel('');
+                          }
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '8px 10px',
+                          borderRadius: '6px',
+                          background: 'rgba(2, 6, 23, 0.8)',
+                          border: '1px solid rgba(255,255,255,0.15)',
+                          color: '#fff',
+                          outline: 'none',
+                          fontSize: '12px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <option value="" style={{ background: '#0b1220', color: '#fff' }}>
+                          -- Marca --
+                        </option>
+                        {Object.keys(CAR_CATALOG).map((brand) => (
+                          <option key={brand} value={brand} style={{ background: '#0b1220', color: '#fff' }}>
+                            {brand}
+                          </option>
+                        ))}
+                        <option value="OTRA" style={{ background: '#0b1220', color: '#38bdf8', fontWeight: 600 }}>
+                          Otra marca (escribir)...
+                        </option>
+                      </select>
+
+                      {accessSelectedBrand === 'OTRA' && (
+                        <input
+                          type="text"
+                          autoFocus
+                          placeholder="Escribe la marca..."
+                          value={accessForm.vehicleBrand}
+                          onChange={(e) => setAccessForm({ ...accessForm, vehicleBrand: e.target.value })}
+                          style={{
+                            width: '100%',
+                            marginTop: '6px',
+                            padding: '7px 10px',
+                            borderRadius: '6px',
+                            background: 'rgba(2, 6, 23, 0.9)',
+                            border: '1px solid #38bdf8',
+                            color: '#fff',
+                            outline: 'none',
+                            fontSize: '12px'
+                          }}
+                        />
+                      )}
+                    </div>
+
+                    {/* Model Selector */}
+                    <div>
+                      {accessSelectedBrand === 'OTRA' ? (
+                        <input
+                          type="text"
+                          placeholder="Escribe el modelo..."
+                          value={accessForm.vehicleModel}
+                          onChange={(e) => setAccessForm({ ...accessForm, vehicleModel: e.target.value })}
+                          style={{
+                            width: '100%',
+                            padding: '8px 10px',
+                            borderRadius: '6px',
+                            background: 'rgba(2, 6, 23, 0.8)',
+                            border: '1px solid rgba(255,255,255,0.15)',
+                            color: '#fff',
+                            outline: 'none',
+                            fontSize: '12px'
+                          }}
+                        />
+                      ) : (
+                        <>
+                          <select
+                            disabled={!accessSelectedBrand}
+                            value={accessSelectedModel}
+                            onChange={(e) => {
+                              const m = e.target.value;
+                              setAccessSelectedModel(m);
+                              if (m === 'OTRO') {
+                                setAccessForm((prev) => ({ ...prev, vehicleModel: '' }));
+                              } else {
+                                setAccessForm((prev) => ({ ...prev, vehicleModel: m }));
+                              }
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: '8px 10px',
+                              borderRadius: '6px',
+                              background: 'rgba(2, 6, 23, 0.8)',
+                              border: '1px solid rgba(255,255,255,0.15)',
+                              color: '#fff',
+                              outline: 'none',
+                              fontSize: '12px',
+                              cursor: !accessSelectedBrand ? 'not-allowed' : 'pointer',
+                              opacity: !accessSelectedBrand ? 0.6 : 1
+                            }}
+                          >
+                            <option value="" style={{ background: '#0b1220', color: '#fff' }}>
+                              {!accessSelectedBrand ? '-- Elige marca --' : '-- Modelo --'}
+                            </option>
+                            {accessSelectedBrand && CAR_CATALOG[accessSelectedBrand]?.map((model) => (
+                              <option key={model} value={model} style={{ background: '#0b1220', color: '#fff' }}>
+                                {model}
+                              </option>
+                            ))}
+                            {accessSelectedBrand && (
+                              <option value="OTRO" style={{ background: '#0b1220', color: '#38bdf8', fontWeight: 600 }}>
+                                Otro modelo (escribir)...
+                              </option>
+                            )}
+                          </select>
+
+                          {accessSelectedModel === 'OTRO' && (
+                            <input
+                              type="text"
+                              autoFocus
+                              placeholder="Escribe el modelo..."
+                              value={accessForm.vehicleModel}
+                              onChange={(e) => setAccessForm({ ...accessForm, vehicleModel: e.target.value })}
+                              style={{
+                                width: '100%',
+                                marginTop: '6px',
+                                padding: '7px 10px',
+                                borderRadius: '6px',
+                                background: 'rgba(2, 6, 23, 0.9)',
+                                border: '1px solid #38bdf8',
+                                color: '#fff',
+                                outline: 'none',
+                                fontSize: '12px'
+                              }}
+                            />
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                     <input

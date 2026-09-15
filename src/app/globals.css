@@ -34,11 +34,15 @@
   --glass-glow: rgba(56, 189, 248, 0.08);
 }
 
+html {
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  scroll-behavior: smooth;
 }
 
 body {
@@ -46,6 +50,8 @@ body {
   color: var(--text-primary);
   font-family: 'Outfit', sans-serif;
   overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   line-height: 1.6;
   transition: background-color var(--transition-speed) ease, color var(--transition-speed) ease;
 }

@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import VehicleDamageMapModal, { DamagePoint, VehicleInspectionData } from '../../../components/vehicles/VehicleDamageMapModal';
+import { CAR_CATALOG } from '../../../lib/car-catalog';
 
 interface VehicleOwner {
   id: string;
@@ -62,16 +63,14 @@ export default function VehiclesPage() {
   const isClient = user?.roles?.some(r => r.role?.name === 'Cliente') ?? false;
 
   const [vehicles, setVehicles] = useState<VehicleData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
-  // Modal State for Register / Edit
+  // Modal State for Add / Edit
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
-
-  // Form Fields
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     brand: '',
     model: '',
@@ -84,6 +83,8 @@ export default function VehiclesPage() {
     lastMaintenanceMileage: '',
     notes: '',
   });
+  const [selectedBrand, setSelectedBrand] = useState('');
+  const [selectedModel, setSelectedModel] = useState('');
   const [photos, setPhotos] = useState<string[]>([]);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
@@ -192,6 +193,8 @@ export default function VehiclesPage() {
 
   const handleOpenCreateModal = () => {
     setEditingVehicleId(null);
+    setSelectedBrand('');
+    setSelectedModel('');
     setFormData({
       brand: '',
       model: '',
@@ -210,6 +213,17 @@ export default function VehiclesPage() {
 
   const handleOpenEditModal = (v: VehicleData) => {
     setEditingVehicleId(v.id);
+    if (v.brand && CAR_CATALOG[v.brand]) {
+      setSelectedBrand(v.brand);
+      if (v.model && CAR_CATALOG[v.brand].includes(v.model)) {
+        setSelectedModel(v.model);
+      } else {
+        setSelectedModel(v.model ? 'OTRO' : '');
+      }
+    } else {
+      setSelectedBrand(v.brand ? 'OTRA' : '');
+      setSelectedModel(v.model ? 'OTRO' : '');
+    }
     setFormData({
       brand: v.brand,
       model: v.model,
@@ -694,40 +708,136 @@ export default function VehiclesPage() {
               
               {/* Row 1: Brand, Model, Year */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '18px' }}>
+                {/* Brand Selector */}
                 <div>
                   <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>
                     Marca *
                   </label>
-                  <input
+                  <select
                     required
-                    type="text"
-                    placeholder="Ej. Ford, Toyota, BMW"
-                    value={formData.brand}
-                    onChange={e => setFormData({ ...formData, brand: e.target.value })}
+                    value={selectedBrand}
+                    onChange={(e) => {
+                      const b = e.target.value;
+                      setSelectedBrand(b);
+                      if (b === 'OTRA') {
+                        setFormData((prev) => ({ ...prev, brand: '', model: '' }));
+                        setSelectedModel('OTRO');
+                      } else {
+                        setFormData((prev) => ({ ...prev, brand: b, model: '' }));
+                        setSelectedModel('');
+                      }
+                    }}
                     style={{
                       width: '100%', padding: '10px 14px', borderRadius: '10px',
-                      border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.04)',
-                      color: 'var(--text-primary)', outline: 'none', fontSize: '14px'
+                      border: '1px solid var(--glass-border)', background: 'var(--bg-card, #0f172a)',
+                      color: 'var(--text-primary)', outline: 'none', fontSize: '14px',
+                      cursor: 'pointer'
                     }}
-                  />
+                  >
+                    <option value="" style={{ background: '#0b1220', color: '#fff' }}>
+                      -- Selecciona la Marca --
+                    </option>
+                    {Object.keys(CAR_CATALOG).map((brand) => (
+                      <option key={brand} value={brand} style={{ background: '#0b1220', color: '#fff' }}>
+                        {brand}
+                      </option>
+                    ))}
+                    <option value="OTRA" style={{ background: '#0b1220', color: '#38bdf8', fontWeight: 600 }}>
+                      Otra marca (escribir manualmente)...
+                    </option>
+                  </select>
+
+                  {selectedBrand === 'OTRA' && (
+                    <input
+                      required
+                      type="text"
+                      autoFocus
+                      placeholder="Escribe la marca..."
+                      value={formData.brand}
+                      onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+                      style={{
+                        width: '100%', marginTop: '8px', padding: '10px 14px', borderRadius: '10px',
+                        border: '1px solid #38bdf8', background: 'rgba(255,255,255,0.04)',
+                        color: 'var(--text-primary)', outline: 'none', fontSize: '14px'
+                      }}
+                    />
+                  )}
                 </div>
 
+                {/* Model Selector */}
                 <div>
                   <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>
                     Modelo *
                   </label>
-                  <input
-                    required
-                    type="text"
-                    placeholder="Ej. Mustang GT, Corolla, X5"
-                    value={formData.model}
-                    onChange={e => setFormData({ ...formData, model: e.target.value })}
-                    style={{
-                      width: '100%', padding: '10px 14px', borderRadius: '10px',
-                      border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.04)',
-                      color: 'var(--text-primary)', outline: 'none', fontSize: '14px'
-                    }}
-                  />
+
+                  {selectedBrand === 'OTRA' ? (
+                    <input
+                      required
+                      type="text"
+                      placeholder="Escribe el modelo..."
+                      value={formData.model}
+                      onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+                      style={{
+                        width: '100%', padding: '10px 14px', borderRadius: '10px',
+                        border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.04)',
+                        color: 'var(--text-primary)', outline: 'none', fontSize: '14px'
+                      }}
+                    />
+                  ) : (
+                    <>
+                      <select
+                        required
+                        disabled={!selectedBrand}
+                        value={selectedModel}
+                        onChange={(e) => {
+                          const m = e.target.value;
+                          setSelectedModel(m);
+                          if (m === 'OTRO') {
+                            setFormData((prev) => ({ ...prev, model: '' }));
+                          } else {
+                            setFormData((prev) => ({ ...prev, model: m }));
+                          }
+                        }}
+                        style={{
+                          width: '100%', padding: '10px 14px', borderRadius: '10px',
+                          border: '1px solid var(--glass-border)', background: 'var(--bg-card, #0f172a)',
+                          color: 'var(--text-primary)', outline: 'none', fontSize: '14px',
+                          cursor: !selectedBrand ? 'not-allowed' : 'pointer',
+                          opacity: !selectedBrand ? 0.6 : 1
+                        }}
+                      >
+                        <option value="" style={{ background: '#0b1220', color: '#fff' }}>
+                          {!selectedBrand ? '-- Selecciona primero la marca --' : '-- Selecciona el Modelo --'}
+                        </option>
+                        {selectedBrand && CAR_CATALOG[selectedBrand]?.map((model) => (
+                          <option key={model} value={model} style={{ background: '#0b1220', color: '#fff' }}>
+                            {model}
+                          </option>
+                        ))}
+                        {selectedBrand && (
+                          <option value="OTRO" style={{ background: '#0b1220', color: '#38bdf8', fontWeight: 600 }}>
+                            Otro modelo (escribir manualmente)...
+                          </option>
+                        )}
+                      </select>
+
+                      {selectedModel === 'OTRO' && (
+                        <input
+                          required
+                          type="text"
+                          autoFocus
+                          placeholder="Escribe el modelo..."
+                          value={formData.model}
+                          onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+                          style={{
+                            width: '100%', marginTop: '8px', padding: '10px 14px', borderRadius: '10px',
+                            border: '1px solid #38bdf8', background: 'rgba(255,255,255,0.04)',
+                            color: 'var(--text-primary)', outline: 'none', fontSize: '14px'
+                          }}
+                        />
+                      )}
+                    </>
+                  )}
                 </div>
 
                 <div>

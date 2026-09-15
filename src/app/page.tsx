@@ -4,12 +4,31 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { safeFetch } from '../lib/api-config';
 import dynamic from 'next/dynamic';
+import {
+  Wrench,
+  ShieldCheck,
+  UserCheck,
+  Sparkles,
+  Car,
+  Calendar,
+  MapPin,
+  Search,
+  Crosshair,
+  Lock,
+  AlertTriangle,
+  CheckCircle2,
+  X,
+  Target,
+  Compass,
+  ArrowRight
+} from 'lucide-react';
 
 const Map = dynamic(() => import('react-map-gl').then((mod) => mod.default), {
   ssr: false,
   loading: () => (
-    <div style={{ height: '100%', width: '100%', minHeight: '300px', backgroundColor: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#38bdf8', fontSize: '0.9rem', fontWeight: 600 }}>
-      🗺️ Cargando Mapa Interactivo...
+    <div style={{ height: '100%', width: '100%', minHeight: '300px', backgroundColor: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#38bdf8', fontSize: '0.9rem', fontWeight: 600, gap: '0.6rem' }}>
+      <MapPin size={20} className="animate-pulse" />
+      <span>Cargando Mapa Interactivo...</span>
     </div>
   )
 });
@@ -17,6 +36,8 @@ const Map = dynamic(() => import('react-map-gl').then((mod) => mod.default), {
 const Marker = dynamic(() => import('react-map-gl').then((mod) => mod.Marker), {
   ssr: false
 });
+
+import { CAR_CATALOG } from '../lib/car-catalog';
 
 type LangType = 'es' | 'en';
 type ThemeType = 'dark' | 'light';
@@ -39,6 +60,8 @@ export default function Home() {
     date: '',
     notes: ''
   });
+  const [bookingSelectedBrand, setBookingSelectedBrand] = useState('');
+  const [bookingSelectedModel, setBookingSelectedModel] = useState('');
   const [bookingSubmitted, setBookingSubmitted] = useState(false);
   const [isSubmittingBooking, setIsSubmittingBooking] = useState(false);
   const [formErrorMsg, setFormErrorMsg] = useState('');
@@ -57,6 +80,8 @@ export default function Home() {
     vehiclePlates: '',
     lastMaintenanceDate: ''
   });
+  const [accessSelectedBrand, setAccessSelectedBrand] = useState('');
+  const [accessSelectedModel, setAccessSelectedModel] = useState('');
   const [isSubmittingAccess, setIsSubmittingAccess] = useState(false);
   const [accessSuccess, setAccessSuccess] = useState(false);
   const [accessError, setAccessError] = useState('');
@@ -216,83 +241,87 @@ export default function Home() {
   // Dictionary for translations
   const t = {
     es: {
-      navFeatures: 'Servicios',
+      navFeatures: 'Lo Que Hacemos',
       navMisionVision: 'Misión y Visión',
-      navReserve: 'Reserva a Domicilio',
+      navReserve: 'Agendar Cita',
       loginBtn: 'Iniciar Sesión',
-      demoBtn: 'Ver Demo',
-      heroBadge: 'SERVICIO AUTOMOTRIZ 100% A DOMICILIO',
-      heroTitle: 'El mantenimiento inteligente de tu auto en tu domicilio',
-      heroDesc: 'Solicita revisiones, servicios preventivos y diagnósticos directamente en la puerta de tu casa u oficina con atención técnica profesional.',
-      ctaBtn: 'Solicitar Servicio A Domicilio',
-      featuresTitle: 'Ecosistema de Mantenimiento a Domicilio',
-      featuresSubtitle: 'Atención técnica profesional directamente donde se encuentre tu vehículo.',
-      feat1Title: 'Reserva a Domicilio',
-      feat1Desc: 'Solicita mantenimientos, revisiones y diagnósticos directamente a tu casa u oficina.',
-      feat2Title: 'Atención Satelital y Coordenadas GPS',
-      feat2Desc: 'Selecciona tu ubicación exacta en el mapa interactivo para la llegada rápida de nuestro mecánico.',
-      feat3Title: 'Taller Móvil Certificado',
-      feat3Desc: 'Equipos y herramientas de diagnóstico profesional llevados a la puerta de tu hogar.',
+      portalBtn: 'Portal de Clientes',
+      heroBadge: 'SERVICIOS AUTOMOTRICES & MANTENIMIENTO CERTIFICADO',
+      heroTitle: 'Mantenimiento automotriz inteligente, certificado y hecho a tu medida',
+      heroDesc: 'Atención técnica integral para tu vehículo: diagnósticos computarizados avanzados, mecánicos calificados, expediente técnico digital en tu perfil de usuario y servicio flexible a domicilio o taller.',
+      ctaBtn: 'Agendar Servicio',
+      featuresTitle: 'Lo Que Hacemos en Aura',
+      featuresSubtitle: 'Ingeniería, tecnología digital y máxima confianza aplicadas al cuidado inteligente de tu automóvil.',
+      feat1Title: 'Servicios Automotrices Integrales',
+      feat1Desc: 'Afinaciones mayores y menores, diagnóstico computarizado con escáner OBD-II, frenos, suspensión, dirección y revisión integral de fluidos con equipos de precisión.',
+      feat2Title: 'Mantenimiento Certificado',
+      feat2Desc: 'Protocolos rigurosos respaldados por mecánicos calificados, refacciones originales (OEM) de alta gama y póliza de garantía por escrito en cada intervención.',
+      feat3Title: 'Perfil del Usuario & Expediente Digital',
+      feat3Desc: 'Tu auto con su propio expediente técnico en la nube: historial clínico de servicios, bitácora fotográfica de evidencia, mapa interactivo de daños e inspecciones y alertas preventivas.',
+      feat4Title: 'Hecho a la Medida',
+      feat4Desc: 'Nos adaptamos 100% a tu tiempo y necesidades: solicita mecánicos certificados en la comodidad de tu casa u oficina, o agenda cita en taller. Cobertura para autos particulares y flotas corporativas.',
       misionTitle: 'Nuestra Misión',
-      misionDesc: 'Transformar el mantenimiento automotriz en una experiencia 100% cómoda, transparente y profesional, llevando talleres móviles certificados directamente a la puerta de tu casa u oficina.',
+      misionDesc: 'Transformar el mantenimiento automotriz en una experiencia transparente, cómoda y de calidad superior, combinando tecnología digital, mecánicos certificados y atención personalizada a la medida de cada conductor.',
       visionTitle: 'Nuestra Visión',
-      visionDesc: 'Consolidarnos como el ecosistema de mantenimiento automotriz a domicilio líder en Latinoamérica, impulsado por tecnología de vanguardia, máxima confianza y excelencia técnica.',
+      visionDesc: 'Consolidarnos como el ecosistema de mantenimiento automotriz líder en Latinoamérica, impulsado por tecnología de vanguardia, máxima confianza y excelencia técnica.',
       networkBadge: 'ATENCIÓN DIRECTA',
-      networkTitle: 'Reserva Tu Servicio a Domicilio',
-      networkDesc: 'Por el momento todos nuestros servicios se realizan de forma 100% a domicilio. Completa tus datos para agendar la visita de un mecánico certificado.',
+      networkTitle: 'Agenda Tu Servicio Automotriz',
+      networkDesc: 'Selecciona tus datos y ubicación para programar la atención técnica de tu auto con mecánicos certificados.',
       formFullName: 'Nombre Completo *',
       formPhone: 'Teléfono / WhatsApp de Contacto *',
       formVehicle: 'Auto (Marca, Modelo y Año) *',
       formServiceType: 'Tipo de Servicio',
       formDate: 'Fecha Deseada',
-      formAddress: 'Ubicación / Dirección a Domicilio *',
-      formNotes: 'Notas Adicionales / Instrucciones de Llegada',
-      formSubmit: 'Confirmar y Solicitar Cita a Domicilio',
+      formAddress: 'Ubicación / Dirección *',
+      formNotes: 'Notas Adicionales / Síntomas del Auto',
+      formSubmit: 'Confirmar y Agendar Servicio',
       formSubmitting: 'Enviando solicitud...',
       formRequiredErr: 'Por favor completa los campos obligatorios (Nombre, Teléfono, Vehículo y Dirección)',
-      formSuccessTitle: '¡Solicitud a Domicilio Recibida!',
-      formSuccessDesc: 'Un asesor técnico de AURA revisará tu solicitud y se pondrá en contacto contigo en breve para confirmar el horario de llegada del mecánico.',
-      formAnotherBtn: 'Realizar Otra Solicitud →',
+      formSuccessTitle: '¡Solicitud Recibida con Éxito!',
+      formSuccessDesc: 'Un asesor técnico de AURA revisará los datos de tu auto y se pondrá en contacto contigo a la brevedad para coordinar la llegada del mecánico certificado.',
+      formAnotherBtn: 'Agendar Otro Servicio',
       footerRights: '© 2026 Aura Inc. Todos los derechos reservados.'
     },
     en: {
-      navFeatures: 'Services',
+      navFeatures: 'What We Do',
       navMisionVision: 'Mission & Vision',
-      navReserve: 'Home Service Booking',
+      navReserve: 'Book Service',
       loginBtn: 'Log In',
-      demoBtn: 'Watch Demo',
-      heroBadge: '100% MOBILE AUTOMOTIVE SERVICE',
-      heroTitle: 'Smart vehicle maintenance at your doorstep',
-      heroDesc: 'Request inspections, preventive services, and diagnostics directly at your home or office with certified mobile technicians.',
-      ctaBtn: 'Book Home Service',
-      featuresTitle: 'Mobile Maintenance Ecosystem',
-      featuresSubtitle: 'Professional technical assistance directly wherever your vehicle is.',
-      feat1Title: 'Home Booking',
-      feat1Desc: 'Request maintenance, inspections, and diagnostics directly at your home or office.',
-      feat2Title: 'Satellite & GPS Coordinates',
-      feat2Desc: 'Select your exact location on the interactive map for fast arrival of our mobile mechanic.',
-      feat3Title: 'Certified Mobile Workshop',
-      feat3Desc: 'Professional diagnostic tools brought straight to your doorstep.',
+      portalBtn: 'Client Portal',
+      heroBadge: 'AUTOMOTIVE SERVICES & CERTIFIED MAINTENANCE',
+      heroTitle: 'Smart, certified automotive maintenance tailored to your needs',
+      heroDesc: 'Comprehensive technical care for your vehicle: advanced computerized diagnostics, certified technicians, digital records in your user profile, and flexible mobile or workshop service.',
+      ctaBtn: 'Book Service',
+      featuresTitle: 'What We Do at Aura',
+      featuresSubtitle: 'Engineering, cutting-edge technology, and trust dedicated to smart vehicle care.',
+      feat1Title: 'Comprehensive Automotive Services',
+      feat1Desc: 'Major and minor tune-ups, computerized OBD-II diagnostics, brake systems, suspension, and complete fluid servicing performed with precision equipment.',
+      feat2Title: 'Certified Maintenance',
+      feat2Desc: 'Dealership-grade protocols executed by certified technicians, high-grade OEM parts, and written service warranties on every inspection.',
+      feat3Title: 'User Profile & Digital Records',
+      feat3Desc: 'Your car gets its own clinical record in the cloud: technical maintenance logs, HD photo evidence, interactive damage inspection maps, and preventive alerts.',
+      feat4Title: 'Tailored to Your Needs',
+      feat4Desc: 'Total flexibility adapted to your lifestyle: request certified technicians directly at home or office, or visit partner workshops. Tailored plans for private drivers and corporate fleets.',
       misionTitle: 'Our Mission',
-      misionDesc: 'Transforming automotive maintenance into a 100% comfortable, transparent, and professional experience by delivering certified mobile workshops right to your home or office.',
+      misionDesc: 'To transform automotive maintenance into a transparent, convenient, and top-tier experience, fusing digital technology, certified mechanics, and personalized care tailored to each driver.',
       visionTitle: 'Our Vision',
-      visionDesc: 'To consolidate as the leading mobile home automotive maintenance ecosystem in Latin America, powered by cutting-edge technology, maximum trust, and technical excellence.',
+      visionDesc: 'To become Latin America’s leading automotive service and maintenance management platform, redefining trust, transparency, and vehicle technical traceability.',
       networkBadge: 'DIRECT ASSISTANCE',
-      networkTitle: 'Book Your Home Service',
-      networkDesc: 'All our services are currently 100% mobile. Complete your details to schedule a certified mechanic visit.',
+      networkTitle: 'Book Your Automotive Service',
+      networkDesc: 'Fill in your vehicle details and location to schedule certified technical assistance.',
       formFullName: 'Full Name *',
       formPhone: 'Contact Phone / WhatsApp *',
       formVehicle: 'Vehicle (Make, Model, Year) *',
       formServiceType: 'Service Type',
       formDate: 'Desired Date',
-      formAddress: 'Home Address / Location *',
-      formNotes: 'Additional Notes / Arrival Instructions',
-      formSubmit: 'Confirm & Book Home Service',
+      formAddress: 'Service Address / Location *',
+      formNotes: 'Additional Notes / Vehicle Symptoms',
+      formSubmit: 'Confirm & Book Service',
       formSubmitting: 'Submitting request...',
       formRequiredErr: 'Please fill in all required fields (Name, Phone, Vehicle, and Address)',
-      formSuccessTitle: 'Home Service Request Received!',
-      formSuccessDesc: 'An AURA technical advisor will review your request and contact you shortly to confirm the mechanic arrival time.',
-      formAnotherBtn: 'Submit Another Request →',
+      formSuccessTitle: 'Service Request Received!',
+      formSuccessDesc: 'An AURA technical advisor will review your vehicle details and contact you shortly to confirm your certified technician schedule.',
+      formAnotherBtn: 'Submit Another Request',
       footerRights: '© 2026 Aura Inc. All rights reserved.'
     }
   };
@@ -311,12 +340,14 @@ export default function Home() {
 
   return (
     <>
-      <div style={{ position: 'relative', minHeight: '100vh', backgroundColor: 'var(--bg-primary)', overflow: 'hidden', transition: 'background-color 0.3s ease' }}>
+      <div style={{ position: 'relative', minHeight: '100vh', backgroundColor: 'var(--bg-primary)', overflowX: 'clip', transition: 'background-color 0.3s ease' }}>
         
-        {/* Background Glow Orbs */}
-        <div className="bg-glow-orb" style={{ top: '-10%', left: '-10%', width: '500px', height: '500px', background: 'radial-gradient(circle, rgba(56,189,248,0.15) 0%, rgba(0,0,0,0) 70%)', filter: 'blur(80px)' }}></div>
-        <div className="bg-glow-orb" style={{ bottom: '-15%', right: '-10%', width: '600px', height: '600px', background: 'radial-gradient(circle, rgba(167,139,250,0.12) 0%, rgba(0,0,0,0) 70%)', filter: 'blur(100px)' }}></div>
-        <div className="bg-glow-orb" style={{ top: '40%', left: '50%', transform: 'translate(-50%, -50%)', width: '800px', height: '800px', background: 'radial-gradient(circle, rgba(6,182,212,0.05) 0%, rgba(0,0,0,0) 70%)', filter: 'blur(120px)', pointerEvents: 'none' }}></div>
+        {/* Background Glow Orbs container (contained to prevent bottom overflow) */}
+        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 0 }}>
+          <div className="bg-glow-orb" style={{ top: '-10%', left: '-10%', width: '500px', height: '500px', background: 'radial-gradient(circle, rgba(56,189,248,0.15) 0%, rgba(0,0,0,0) 70%)', filter: 'blur(80px)' }}></div>
+          <div className="bg-glow-orb" style={{ bottom: '5%', right: '-10%', width: '500px', height: '500px', background: 'radial-gradient(circle, rgba(167,139,250,0.12) 0%, rgba(0,0,0,0) 70%)', filter: 'blur(100px)' }}></div>
+          <div className="bg-glow-orb" style={{ top: '40%', left: '50%', transform: 'translate(-50%, -50%)', width: '700px', height: '700px', background: 'radial-gradient(circle, rgba(6,182,212,0.05) 0%, rgba(0,0,0,0) 70%)', filter: 'blur(120px)' }}></div>
+        </div>
 
         {/* --- HEADER (Liquid Glass Navigation Bar) --- */}
         <header className="liquid-glass" style={{
@@ -450,7 +481,7 @@ export default function Home() {
               onMouseOut={(e) => {
                 e.currentTarget.style.transform = 'scale(1)';
               }}>
-              Solicitar Acceso
+              {currentT.portalBtn}
             </button>
 
             {/* Iniciar Sesión (Desktop) */}
@@ -509,7 +540,7 @@ export default function Home() {
               borderRadius: '30px', padding: '0.8rem 2rem', color: '#fff', fontSize: '1rem',
               fontWeight: 700, border: 'none', width: '100%', cursor: 'pointer'
             }}>
-              Solicitar Acceso
+              {currentT.portalBtn}
             </button>
             <Link href="/login" onClick={() => setIsMobileMenuOpen(false)} style={{
               background: 'rgba(56, 189, 248, 0.15)', border: '1px solid rgba(56, 189, 248, 0.3)',
@@ -600,74 +631,153 @@ export default function Home() {
           </p>
 
           {/* Call to Actions */}
-          <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-            <button className="glow-effect" style={{
-              background: 'linear-gradient(135deg, #0284c7 0%, #06b6d4 100%)',
-              border: 'none',
-              borderRadius: '12px',
-              padding: '1rem 2.5rem',
-              color: '#fff',
-              fontSize: '1.1rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              transition: 'transform 0.2s',
-              boxShadow: '0 4px 20px rgba(56, 189, 248, 0.3)'
-            }}
-            onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-            onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}>
-              {currentT.ctaBtn}
-            </button>
-            <button style={{
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid var(--glass-border)',
-              borderRadius: '12px',
-              padding: '1rem 2.5rem',
-              color: 'var(--text-primary)',
-              fontSize: '1.1rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-            onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'}
-            onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'}>
-              {currentT.demoBtn}
+          <div style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <a
+              href="#domicilio"
+              className="glow-effect"
+              style={{
+                textDecoration: 'none',
+                background: 'linear-gradient(135deg, #0284c7 0%, #06b6d4 100%)',
+                border: 'none',
+                borderRadius: '14px',
+                padding: '1rem 2.4rem',
+                color: '#fff',
+                fontSize: '1.05rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'transform 0.2s',
+                boxShadow: '0 4px 20px rgba(56, 189, 248, 0.3)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.6rem'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+              onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              <span>{currentT.ctaBtn}</span>
+              <ArrowRight size={18} />
+            </a>
+            <button
+              onClick={() => {
+                setIsAccessModalOpen(true);
+                setAccessSuccess(false);
+                setAccessError('');
+              }}
+              style={{
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid var(--glass-border)',
+                borderRadius: '14px',
+                padding: '1rem 2.2rem',
+                color: 'var(--text-primary)',
+                fontSize: '1.05rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.6rem'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'}
+              onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'}
+            >
+              <UserCheck size={19} color="var(--color-accent-light)" />
+              <span>{currentT.portalBtn}</span>
             </button>
           </div>
         </section>
 
-        {/* --- FEATURES SECTION --- */}
+        {/* --- FEATURES / LO QUE HACEMOS SECTION --- */}
         <section id="features" style={{ padding: '8rem 5%', position: 'relative' }}>
           <div style={{ textAlign: 'center', marginBottom: '5rem' }}>
             <h2 style={{ fontSize: '2.5rem', fontWeight: 300, marginBottom: '1rem', letterSpacing: '-1px' }}>{currentT.featuresTitle}</h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '1.15rem', fontWeight: 300 }}>{currentT.featuresSubtitle}</p>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '1.15rem', fontWeight: 300, maxWidth: '750px', margin: '0 auto' }}>{currentT.featuresSubtitle}</p>
           </div>
 
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
             gap: '2rem',
-            maxWidth: '1200px',
+            maxWidth: '1240px',
             margin: '0 auto'
           }}>
-            {/* Feature 1 */}
-            <div className="glass-card" style={{ padding: '2.5rem 2rem' }}>
-              <div style={{ fontSize: '2.5rem', marginBottom: '1.5rem', color: 'var(--color-accent-light)' }}>🗓️</div>
-              <h3 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '1rem' }}>{currentT.feat1Title}</h3>
-              <p style={{ color: 'var(--text-secondary)' }}>{currentT.feat1Desc}</p>
+            {/* Feature 1: Servicios Automotrices Integrales */}
+            <div className="glass-card" style={{ padding: '2.5rem 2rem', display: 'flex', flexDirection: 'column', height: '100%' }}>
+              <div style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '16px',
+                backgroundColor: 'rgba(56, 189, 248, 0.15)',
+                border: '1px solid rgba(56, 189, 248, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: '1.5rem',
+                color: 'var(--color-accent-light)'
+              }}>
+                <Wrench size={28} />
+              </div>
+              <h3 style={{ fontSize: '1.35rem', fontWeight: 700, marginBottom: '0.85rem' }}>{currentT.feat1Title}</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', lineHeight: 1.65, margin: 0 }}>{currentT.feat1Desc}</p>
             </div>
 
-            {/* Feature 2 */}
-            <div className="glass-card" style={{ padding: '2.5rem 2rem' }}>
-              <div style={{ fontSize: '2.5rem', marginBottom: '1.5rem', color: 'var(--color-emerald)' }}>📍</div>
-              <h3 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '1rem' }}>{currentT.feat2Title}</h3>
-              <p style={{ color: 'var(--text-secondary)' }}>{currentT.feat2Desc}</p>
+            {/* Feature 2: Mantenimiento Certificado */}
+            <div className="glass-card" style={{ padding: '2.5rem 2rem', display: 'flex', flexDirection: 'column', height: '100%' }}>
+              <div style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '16px',
+                backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: '1.5rem',
+                color: 'var(--color-emerald)'
+              }}>
+                <ShieldCheck size={28} />
+              </div>
+              <h3 style={{ fontSize: '1.35rem', fontWeight: 700, marginBottom: '0.85rem' }}>{currentT.feat2Title}</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', lineHeight: 1.65, margin: 0 }}>{currentT.feat2Desc}</p>
             </div>
 
-            {/* Feature 3 */}
-            <div className="glass-card" style={{ padding: '2.5rem 2rem' }}>
-              <div style={{ fontSize: '2.5rem', marginBottom: '1.5rem', color: '#a78bfa' }}>🛡️</div>
-              <h3 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '1rem' }}>{currentT.feat3Title}</h3>
-              <p style={{ color: 'var(--text-secondary)' }}>{currentT.feat3Desc}</p>
+            {/* Feature 3: Perfil del Usuario & Expediente Digital */}
+            <div className="glass-card" style={{ padding: '2.5rem 2rem', display: 'flex', flexDirection: 'column', height: '100%' }}>
+              <div style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '16px',
+                backgroundColor: 'rgba(167, 139, 250, 0.15)',
+                border: '1px solid rgba(167, 139, 250, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: '1.5rem',
+                color: '#a78bfa'
+              }}>
+                <UserCheck size={28} />
+              </div>
+              <h3 style={{ fontSize: '1.35rem', fontWeight: 700, marginBottom: '0.85rem' }}>{currentT.feat3Title}</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', lineHeight: 1.65, margin: 0 }}>{currentT.feat3Desc}</p>
+            </div>
+
+            {/* Feature 4: Hecho a la Medida */}
+            <div className="glass-card" style={{ padding: '2.5rem 2rem', display: 'flex', flexDirection: 'column', height: '100%' }}>
+              <div style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '16px',
+                backgroundColor: 'rgba(245, 158, 11, 0.15)',
+                border: '1px solid rgba(245, 158, 11, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: '1.5rem',
+                color: '#f59e0b'
+              }}>
+                <Sparkles size={28} />
+              </div>
+              <h3 style={{ fontSize: '1.35rem', fontWeight: 700, marginBottom: '0.85rem' }}>{currentT.feat4Title}</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.98rem', lineHeight: 1.65, margin: 0 }}>{currentT.feat4Desc}</p>
             </div>
           </div>
         </section>
@@ -690,15 +800,15 @@ export default function Home() {
                 Misión y Visión
               </h2>
               <p style={{ color: 'var(--text-secondary)', fontSize: '1.15rem', maxWidth: '700px', margin: '0.5rem auto 0' }}>
-                Impulsamos el futuro del mantenimiento automotriz llevando talleres móviles certificados directamente a donde te encuentres.
+                {lang === 'es' ? 'Impulsamos el cuidado integral automotriz con innovación digital, calidad certificada y máxima transparencia.' : 'We drive comprehensive automotive care through digital innovation, certified quality, and absolute transparency.'}
               </p>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2.5rem' }}>
               {/* Misión Card */}
               <div className="ios-glass-card" style={{ padding: '3rem 2.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                <div style={{ width: '60px', height: '60px', borderRadius: '20px', backgroundColor: 'rgba(56, 189, 248, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.8rem' }}>
-                  🎯
+                <div style={{ width: '60px', height: '60px', borderRadius: '20px', backgroundColor: 'rgba(56, 189, 248, 0.15)', border: '1px solid rgba(56, 189, 248, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-accent-light)' }}>
+                  <Target size={30} />
                 </div>
                 <h3 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
                   {currentT.misionTitle}
@@ -710,8 +820,8 @@ export default function Home() {
 
               {/* Visión Card */}
               <div className="ios-glass-card" style={{ padding: '3rem 2.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                <div style={{ width: '60px', height: '60px', borderRadius: '20px', backgroundColor: 'rgba(16, 185, 129, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.8rem' }}>
-                  🚀
+                <div style={{ width: '60px', height: '60px', borderRadius: '20px', backgroundColor: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-emerald)' }}>
+                  <Compass size={30} />
                 </div>
                 <h3 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
                   {currentT.visionTitle}
@@ -842,11 +952,11 @@ export default function Home() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '2.5rem',
                     margin: '0 auto 1.5rem',
-                    boxShadow: '0 0 30px rgba(16, 185, 129, 0.3)'
+                    boxShadow: '0 0 30px rgba(16, 185, 129, 0.3)',
+                    color: 'var(--color-emerald)'
                   }}>
-                    ✨
+                    <CheckCircle2 size={42} />
                   </div>
                   <h3 style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '1rem' }}>
                     {currentT.formSuccessTitle}
@@ -857,6 +967,8 @@ export default function Home() {
                   <button
                     onClick={() => {
                       setBookingSubmitted(false);
+                      setBookingSelectedBrand('');
+                      setBookingSelectedModel('');
                       setBookingForm({
                         name: '',
                         phone: '',
@@ -877,10 +989,14 @@ export default function Home() {
                       color: '#fff',
                       fontSize: '1rem',
                       fontWeight: 700,
-                      cursor: 'pointer'
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.5rem'
                     }}
                   >
-                    {currentT.formAnotherBtn}
+                    <span>{currentT.formAnotherBtn}</span>
+                    <ArrowRight size={16} />
                   </button>
                 </div>
               ) : (
@@ -926,9 +1042,13 @@ export default function Home() {
                       padding: '1rem 1.25rem',
                       color: '#f87171',
                       fontWeight: 600,
-                      fontSize: '0.95rem'
+                      fontSize: '0.95rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.6rem'
                     }}>
-                      ⚠️ {formErrorMsg}
+                      <AlertTriangle size={18} style={{ flexShrink: 0 }} />
+                      <span>{formErrorMsg}</span>
                     </div>
                   )}
                   
@@ -985,62 +1105,184 @@ export default function Home() {
                       />
                     </div>
 
-                    {/* Marca del Vehículo */}
+                    {/* Marca del Vehículo (Selector Dinámico y Moderno) */}
                     <div>
-                      <label style={{ display: 'block', fontSize: '0.95rem', fontWeight: 700, color: theme === 'light' ? '#0f172a' : '#f8fafc', marginBottom: '0.6rem' }}>
-                        🚗 {lang === 'es' ? 'Marca del Vehículo' : 'Vehicle Brand'}
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem', fontWeight: 700, color: theme === 'light' ? '#0f172a' : '#f8fafc', marginBottom: '0.6rem' }}>
+                        <Car size={16} color="var(--color-accent-light)" />
+                        <span>{lang === 'es' ? 'Marca del Vehículo *' : 'Vehicle Brand *'}</span>
                       </label>
-                      <input
-                        type="text"
+                      <select
                         required
-                        placeholder="Ej. Toyota, Honda, Ford, Nissan..."
-                        value={bookingForm.vehicleBrand}
-                        onChange={(e) => setBookingForm({ ...bookingForm, vehicleBrand: e.target.value })}
+                        value={bookingSelectedBrand}
+                        onChange={(e) => {
+                          const b = e.target.value;
+                          setBookingSelectedBrand(b);
+                          if (b === 'OTRA') {
+                            setBookingForm((prev) => ({ ...prev, vehicleBrand: '', vehicleModel: '' }));
+                            setBookingSelectedModel('OTRO');
+                          } else {
+                            setBookingForm((prev) => ({ ...prev, vehicleBrand: b, vehicleModel: '' }));
+                            setBookingSelectedModel('');
+                          }
+                        }}
                         style={{
                           width: '100%',
                           padding: '0.9rem 1.2rem',
                           borderRadius: '14px',
                           border: theme === 'light' ? '1px solid #cbd5e1' : '1px solid rgba(56, 189, 248, 0.3)',
-                          backgroundColor: theme === 'light' ? '#f8fafc' : 'rgba(15, 23, 42, 0.7)',
+                          backgroundColor: theme === 'light' ? '#ffffff' : '#0f172a',
                           color: theme === 'light' ? '#0f172a' : '#ffffff',
                           fontSize: '1rem',
                           outline: 'none',
                           boxSizing: 'border-box',
-                          backdropFilter: 'blur(10px)'
+                          backdropFilter: 'blur(10px)',
+                          cursor: 'pointer'
                         }}
-                      />
+                      >
+                        <option value="" style={{ background: theme === 'light' ? '#ffffff' : '#0f172a', color: theme === 'light' ? '#0f172a' : '#ffffff' }}>
+                          {lang === 'es' ? '-- Selecciona la Marca --' : '-- Select Brand --'}
+                        </option>
+                        {Object.keys(CAR_CATALOG).map((brand) => (
+                          <option key={brand} value={brand} style={{ background: theme === 'light' ? '#ffffff' : '#0f172a', color: theme === 'light' ? '#0f172a' : '#ffffff' }}>
+                            {brand}
+                          </option>
+                        ))}
+                        <option value="OTRA" style={{ background: theme === 'light' ? '#ffffff' : '#0f172a', color: 'var(--color-accent-light)', fontWeight: 600 }}>
+                          {lang === 'es' ? 'Otra marca (escribir manualmente)...' : 'Other brand (type manually)...'}
+                        </option>
+                      </select>
+
+                      {/* Input manual si seleccionó OTRA marca */}
+                      {bookingSelectedBrand === 'OTRA' && (
+                        <input
+                          type="text"
+                          required
+                          autoFocus
+                          placeholder={lang === 'es' ? 'Escribe la marca de tu auto...' : 'Type your vehicle brand...'}
+                          value={bookingForm.vehicleBrand}
+                          onChange={(e) => setBookingForm({ ...bookingForm, vehicleBrand: e.target.value })}
+                          style={{
+                            width: '100%',
+                            marginTop: '0.75rem',
+                            padding: '0.85rem 1.2rem',
+                            borderRadius: '12px',
+                            border: theme === 'light' ? '1px solid #94a3b8' : '1px solid var(--color-accent-light)',
+                            backgroundColor: theme === 'light' ? '#f8fafc' : 'rgba(15, 23, 42, 0.9)',
+                            color: theme === 'light' ? '#0f172a' : '#ffffff',
+                            fontSize: '0.95rem',
+                            outline: 'none',
+                            boxSizing: 'border-box'
+                          }}
+                        />
+                      )}
                     </div>
 
-                    {/* Modelo del Vehículo */}
+                    {/* Modelo del Vehículo (Selector Dependiente de Marca) */}
                     <div>
-                      <label style={{ display: 'block', fontSize: '0.95rem', fontWeight: 700, color: theme === 'light' ? '#0f172a' : '#f8fafc', marginBottom: '0.6rem' }}>
-                        🚘 {lang === 'es' ? 'Modelo del Vehículo' : 'Vehicle Model'}
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem', fontWeight: 700, color: theme === 'light' ? '#0f172a' : '#f8fafc', marginBottom: '0.6rem' }}>
+                        <Car size={16} color="var(--color-accent-light)" />
+                        <span>{lang === 'es' ? 'Modelo del Vehículo *' : 'Vehicle Model *'}</span>
                       </label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="Ej. Corolla, Civic, Mustang, Hilux..."
-                        value={bookingForm.vehicleModel}
-                        onChange={(e) => setBookingForm({ ...bookingForm, vehicleModel: e.target.value })}
-                        style={{
-                          width: '100%',
-                          padding: '0.9rem 1.2rem',
-                          borderRadius: '14px',
-                          border: theme === 'light' ? '1px solid #cbd5e1' : '1px solid rgba(56, 189, 248, 0.3)',
-                          backgroundColor: theme === 'light' ? '#f8fafc' : 'rgba(15, 23, 42, 0.7)',
-                          color: theme === 'light' ? '#0f172a' : '#ffffff',
-                          fontSize: '1rem',
-                          outline: 'none',
-                          boxSizing: 'border-box',
-                          backdropFilter: 'blur(10px)'
-                        }}
-                      />
+
+                      {bookingSelectedBrand === 'OTRA' ? (
+                        <input
+                          type="text"
+                          required
+                          placeholder={lang === 'es' ? 'Escribe el modelo de tu auto...' : 'Type your vehicle model...'}
+                          value={bookingForm.vehicleModel}
+                          onChange={(e) => setBookingForm({ ...bookingForm, vehicleModel: e.target.value })}
+                          style={{
+                            width: '100%',
+                            padding: '0.9rem 1.2rem',
+                            borderRadius: '14px',
+                            border: theme === 'light' ? '1px solid #cbd5e1' : '1px solid rgba(56, 189, 248, 0.3)',
+                            backgroundColor: theme === 'light' ? '#f8fafc' : 'rgba(15, 23, 42, 0.7)',
+                            color: theme === 'light' ? '#0f172a' : '#ffffff',
+                            fontSize: '1rem',
+                            outline: 'none',
+                            boxSizing: 'border-box',
+                            backdropFilter: 'blur(10px)'
+                          }}
+                        />
+                      ) : (
+                        <>
+                          <select
+                            required
+                            disabled={!bookingSelectedBrand}
+                            value={bookingSelectedModel}
+                            onChange={(e) => {
+                              const m = e.target.value;
+                              setBookingSelectedModel(m);
+                              if (m === 'OTRO') {
+                                setBookingForm((prev) => ({ ...prev, vehicleModel: '' }));
+                              } else {
+                                setBookingForm((prev) => ({ ...prev, vehicleModel: m }));
+                              }
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: '0.9rem 1.2rem',
+                              borderRadius: '14px',
+                              border: theme === 'light' ? '1px solid #cbd5e1' : '1px solid rgba(56, 189, 248, 0.3)',
+                              backgroundColor: theme === 'light' ? '#ffffff' : '#0f172a',
+                              color: theme === 'light' ? '#0f172a' : '#ffffff',
+                              fontSize: '1rem',
+                              outline: 'none',
+                              boxSizing: 'border-box',
+                              backdropFilter: 'blur(10px)',
+                              cursor: !bookingSelectedBrand ? 'not-allowed' : 'pointer',
+                              opacity: !bookingSelectedBrand ? 0.6 : 1
+                            }}
+                          >
+                            <option value="" style={{ background: theme === 'light' ? '#ffffff' : '#0f172a', color: theme === 'light' ? '#0f172a' : '#ffffff' }}>
+                              {!bookingSelectedBrand
+                                ? (lang === 'es' ? '-- Selecciona primero la marca --' : '-- Select brand first --')
+                                : (lang === 'es' ? '-- Selecciona el Modelo --' : '-- Select Model --')}
+                            </option>
+                            {bookingSelectedBrand && CAR_CATALOG[bookingSelectedBrand]?.map((model) => (
+                              <option key={model} value={model} style={{ background: theme === 'light' ? '#ffffff' : '#0f172a', color: theme === 'light' ? '#0f172a' : '#ffffff' }}>
+                                {model}
+                              </option>
+                            ))}
+                            {bookingSelectedBrand && (
+                              <option value="OTRO" style={{ background: theme === 'light' ? '#ffffff' : '#0f172a', color: 'var(--color-accent-light)', fontWeight: 600 }}>
+                                {lang === 'es' ? 'Otro modelo (escribir manualmente)...' : 'Other model (type manually)...'}
+                              </option>
+                            )}
+                          </select>
+
+                          {/* Input manual si seleccionó OTRO modelo */}
+                          {bookingSelectedModel === 'OTRO' && (
+                            <input
+                              type="text"
+                              required
+                              autoFocus
+                              placeholder={lang === 'es' ? 'Escribe el modelo de tu auto...' : 'Type your vehicle model...'}
+                              value={bookingForm.vehicleModel}
+                              onChange={(e) => setBookingForm({ ...bookingForm, vehicleModel: e.target.value })}
+                              style={{
+                                width: '100%',
+                                marginTop: '0.75rem',
+                                padding: '0.85rem 1.2rem',
+                                borderRadius: '12px',
+                                border: theme === 'light' ? '1px solid #94a3b8' : '1px solid var(--color-accent-light)',
+                                backgroundColor: theme === 'light' ? '#f8fafc' : 'rgba(15, 23, 42, 0.9)',
+                                color: theme === 'light' ? '#0f172a' : '#ffffff',
+                                fontSize: '0.95rem',
+                                outline: 'none',
+                                boxSizing: 'border-box'
+                              }}
+                            />
+                          )}
+                        </>
+                      )}
                     </div>
 
                     {/* Año del Vehículo */}
                     <div>
-                      <label style={{ display: 'block', fontSize: '0.95rem', fontWeight: 700, color: theme === 'light' ? '#0f172a' : '#f8fafc', marginBottom: '0.6rem' }}>
-                        📅 {lang === 'es' ? 'Año del Vehículo' : 'Vehicle Year'}
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem', fontWeight: 700, color: theme === 'light' ? '#0f172a' : '#f8fafc', marginBottom: '0.6rem' }}>
+                        <Calendar size={16} color="var(--color-accent-light)" />
+                        <span>{lang === 'es' ? 'Año del Vehículo' : 'Vehicle Year'}</span>
                       </label>
                       <select
                         required
@@ -1072,8 +1314,9 @@ export default function Home() {
 
                     {/* Servicio Requerido */}
                     <div>
-                      <label style={{ display: 'block', fontSize: '0.95rem', fontWeight: 700, color: theme === 'light' ? '#0f172a' : '#f8fafc', marginBottom: '0.6rem' }}>
-                        🛠️ {currentT.formServiceType}
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem', fontWeight: 700, color: theme === 'light' ? '#0f172a' : '#f8fafc', marginBottom: '0.6rem' }}>
+                        <Wrench size={16} color="var(--color-accent-light)" />
+                        <span>{currentT.formServiceType}</span>
                       </label>
                       <select
                         value={bookingForm.serviceType}
@@ -1104,8 +1347,9 @@ export default function Home() {
                   {/* Dirección de Visita con Buscador de Google Maps / Mapbox Interactivo */}
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                      <label style={{ display: 'block', fontSize: '0.95rem', fontWeight: 700, color: theme === 'light' ? '#0f172a' : '#f8fafc' }}>
-                        📍 {currentT.formAddress}
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem', fontWeight: 700, color: theme === 'light' ? '#0f172a' : '#f8fafc' }}>
+                        <MapPin size={16} color="var(--color-accent-light)" />
+                        <span>{currentT.formAddress}</span>
                       </label>
                       <button
                         type="button"
@@ -1127,14 +1371,15 @@ export default function Home() {
                         onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.03)'}
                         onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
                       >
-                        🎯 {lang === 'es' ? 'Usar mi ubicación actual' : 'Use my current location'}
+                        <Crosshair size={14} />
+                        <span>{lang === 'es' ? 'Usar mi ubicación actual' : 'Use my current location'}</span>
                       </button>
                     </div>
 
                     {/* Search Box con Autocompletado de Mapbox */}
                     <div style={{ position: 'relative', marginBottom: '1rem' }}>
                       <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                        <span style={{ position: 'absolute', left: '1rem', color: theme === 'light' ? '#64748b' : '#94a3b8', fontSize: '1.1rem' }}>🔍</span>
+                        <Search size={17} style={{ position: 'absolute', left: '1rem', color: theme === 'light' ? '#64748b' : '#94a3b8' }} />
                         <input
                           type="text"
                           placeholder={lang === 'es' ? 'Busca tu colonia, calle o referencia en el mapa...' : 'Search your street, neighborhood or location on map...'}
@@ -1192,7 +1437,7 @@ export default function Home() {
                               onMouseOver={(e) => e.currentTarget.style.backgroundColor = theme === 'light' ? '#f1f5f9' : 'rgba(56, 189, 248, 0.15)'}
                               onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                             >
-                              <span>📍</span>
+                              <MapPin size={16} color="var(--color-accent-light)" style={{ flexShrink: 0 }} />
                               <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{result.place_name}</span>
                             </div>
                           ))}
@@ -1212,6 +1457,7 @@ export default function Home() {
                     }}>
                       <Map
                         {...mapViewState}
+                        scrollZoom={false}
                         onMove={(evt) => setMapViewState(evt.viewState)}
                         onClick={handleMapClick}
                         mapStyle={theme === 'light' ? 'mapbox://styles/mapbox/light-v11' : 'mapbox://styles/iannaviomar/cmfwxjr9w009901qmgmsi1172'}
@@ -1231,9 +1477,13 @@ export default function Home() {
                                 marginBottom: '6px',
                                 whiteSpace: 'nowrap',
                                 boxShadow: '0 4px 15px rgba(0,0,0,0.4)',
-                                fontWeight: 700
+                                fontWeight: 700,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.35rem'
                               }}>
-                                📍 {lang === 'es' ? 'Punto de servicio a domicilio' : 'Home service location pin'}
+                                <MapPin size={13} />
+                                <span>{lang === 'es' ? 'Punto de servicio seleccionado' : 'Selected service location'}</span>
                               </div>
                               <div style={{ position: 'relative' }}>
                                 <div style={{
@@ -1272,9 +1522,13 @@ export default function Home() {
                         fontSize: '0.75rem',
                         color: theme === 'light' ? '#0f172a' : '#cbd5e1',
                         border: '1px solid rgba(255,255,255,0.2)',
-                        fontWeight: 600
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.4rem'
                       }}>
-                        💡 {lang === 'es' ? 'Toca cualquier punto del mapa para mover el pin de tu domicilio' : 'Tap anywhere on map to move your home pin location'}
+                        <MapPin size={13} color="var(--color-accent-light)" />
+                        <span>{lang === 'es' ? 'Toca cualquier punto del mapa para mover el pin de tu servicio' : 'Tap anywhere on map to move your service pin location'}</span>
                       </div>
                     </div>
 
@@ -1342,15 +1596,20 @@ export default function Home() {
                         letterSpacing: '0.5px',
                         boxShadow: '0 8px 30px rgba(2, 132, 199, 0.4)',
                         transition: 'transform 0.2s',
-                        opacity: isSubmittingBooking ? 0.7 : 1
+                        opacity: isSubmittingBooking ? 0.7 : 1,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.6rem'
                       }}
                       onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.03)'}
                       onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
                     >
-                      {isSubmittingBooking ? currentT.formSubmitting : `${currentT.formSubmit} ✨`}
+                      <span>{isSubmittingBooking ? currentT.formSubmitting : currentT.formSubmit}</span>
+                      <ArrowRight size={20} />
                     </button>
-                    <p style={{ marginTop: '1rem', fontSize: '0.85rem', color: theme === 'light' ? '#64748b' : 'var(--text-secondary)' }}>
-                      🔒 {lang === 'es' ? 'Tus datos están protegidos con cifrado y solo serán utilizados para la gestión de tu servicio.' : 'Your data is encrypted and protected. It will only be used for service management.'}
+                    <p style={{ marginTop: '1rem', fontSize: '0.85rem', color: theme === 'light' ? '#64748b' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
+                      <Lock size={14} color="var(--color-accent-light)" />
+                      <span>{lang === 'es' ? 'Tus datos están protegidos con cifrado y solo serán utilizados para la gestión de tu servicio.' : 'Your data is encrypted and protected. It will only be used for service management.'}</span>
                     </p>
                   </div>
 
@@ -1361,16 +1620,150 @@ export default function Home() {
           </div>
         </section>
 
-        {/* --- FOOTER --- */}
+        {/* --- FOOTER ELEGANTE Y COMPLETO --- */}
         <footer style={{
-          padding: '4rem 5% 2rem 5%',
+          padding: '4.5rem 5% 2.5rem 5%',
           borderTop: '1px solid var(--glass-border)',
-          textAlign: 'center',
           backgroundColor: 'var(--bg-secondary)',
-          transition: 'background-color 0.3s'
+          transition: 'background-color 0.3s',
+          position: 'relative',
+          zIndex: 10
         }}>
-          <div style={{ display: 'flex', gap: '2rem', marginBottom: '2rem', justifyContent: 'center' }}>
-            <span style={{ fontSize: '1rem', color: 'var(--text-secondary)' }}>{currentT.footerRights}</span>
+          <div style={{
+            maxWidth: '1240px',
+            margin: '0 auto',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+            gap: '3rem',
+            marginBottom: '3.5rem',
+            textAlign: 'left'
+          }}>
+            {/* Columna 1: Marca y Propósito */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                <div style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '50%',
+                  border: '2px solid var(--color-accent-light)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 0 15px var(--color-accent-glow)'
+                }}>
+                  <div style={{ width: '16px', height: '16px', borderRadius: '50%', border: '2px solid var(--color-accent)' }}></div>
+                </div>
+                <span style={{ fontSize: '1.6rem', fontWeight: 300, letterSpacing: '4px', color: 'var(--text-primary)' }}>AURA</span>
+              </div>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.7, maxWidth: '340px', margin: 0 }}>
+                {lang === 'es'
+                  ? 'Plataforma integral de ingeniería y mantenimiento automotriz certificado a domicilio y en talleres especializados.'
+                  : 'Comprehensive automotive engineering and certified maintenance platform, delivered at your doorstep and certified workshops.'}
+              </p>
+            </div>
+
+            {/* Columna 2: Navegación Rápida */}
+            <div>
+              <h4 style={{ color: 'var(--text-primary)', fontSize: '1.05rem', fontWeight: 700, marginBottom: '1.25rem', letterSpacing: '0.5px' }}>
+                {lang === 'es' ? 'Navegación' : 'Navigation'}
+              </h4>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                <li>
+                  <a href="#features" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '0.92rem', transition: 'color 0.2s' }} onMouseOver={(e) => e.currentTarget.style.color = 'var(--color-accent-light)'} onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}>
+                    {currentT.navFeatures}
+                  </a>
+                </li>
+                <li>
+                  <a href="#mision-vision" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '0.92rem', transition: 'color 0.2s' }} onMouseOver={(e) => e.currentTarget.style.color = 'var(--color-accent-light)'} onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}>
+                    {currentT.navMisionVision}
+                  </a>
+                </li>
+                <li>
+                  <a href="#domicilio" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '0.92rem', transition: 'color 0.2s' }} onMouseOver={(e) => e.currentTarget.style.color = 'var(--color-accent-light)'} onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}>
+                    {currentT.navReserve}
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Columna 3: Servicios & Soporte */}
+            <div>
+              <h4 style={{ color: 'var(--text-primary)', fontSize: '1.05rem', fontWeight: 700, marginBottom: '1.25rem', letterSpacing: '0.5px' }}>
+                {lang === 'es' ? 'Servicios' : 'Services'}
+              </h4>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.85rem', color: 'var(--text-secondary)', fontSize: '0.92rem' }}>
+                <li>{lang === 'es' ? 'Mantenimiento Preventivo a Domicilio' : 'Preventive Maintenance at Home'}</li>
+                <li>{lang === 'es' ? 'Diagnóstico por Escáner OBD-II' : 'OBD-II Computer Diagnostic'}</li>
+                <li>{lang === 'es' ? 'Expediente Clínico Digital' : 'Digital Service History'}</li>
+                <li>{lang === 'es' ? 'Mapeo Técnico de Daños' : 'Technical Damage Mapping'}</li>
+              </ul>
+            </div>
+
+            {/* Columna 4: Portal y Accesos */}
+            <div>
+              <h4 style={{ color: 'var(--text-primary)', fontSize: '1.05rem', fontWeight: 700, marginBottom: '1.25rem', letterSpacing: '0.5px' }}>
+                {lang === 'es' ? 'Portal de Clientes' : 'Client Access'}
+              </h4>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '1.25rem' }}>
+                {lang === 'es'
+                  ? 'Gestiona tu auto, revisa tus bitácoras y agenda servicios desde tu cuenta.'
+                  : 'Manage your vehicle, review inspection records, and schedule services from your portal.'}
+              </p>
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => { setIsAccessModalOpen(true); setAccessSuccess(false); setAccessError(''); }}
+                  style={{
+                    background: 'linear-gradient(135deg, #0284c7 0%, #06b6d4 100%)',
+                    border: 'none',
+                    borderRadius: '20px',
+                    padding: '0.55rem 1.25rem',
+                    color: '#fff',
+                    fontSize: '0.88rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 15px rgba(2, 132, 199, 0.35)'
+                  }}
+                >
+                  {currentT.portalBtn}
+                </button>
+                <Link
+                  href="/login"
+                  style={{
+                    background: 'rgba(56, 189, 248, 0.12)',
+                    border: '1px solid rgba(56, 189, 248, 0.3)',
+                    borderRadius: '20px',
+                    padding: '0.55rem 1.25rem',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.88rem',
+                    fontWeight: 600,
+                    textDecoration: 'none',
+                    display: 'inline-block'
+                  }}
+                >
+                  {currentT.loginBtn}
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Barra Inferior con Derechos */}
+          <div style={{
+            maxWidth: '1240px',
+            margin: '0 auto',
+            paddingTop: '2rem',
+            borderTop: '1px solid var(--glass-border)',
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '1rem',
+            fontSize: '0.88rem',
+            color: 'var(--text-secondary)'
+          }}>
+            <span>{currentT.footerRights}</span>
+            <div style={{ display: 'flex', gap: '1.5rem' }}>
+              <span>{lang === 'es' ? 'Tecnología e Ingeniería Automotriz' : 'Automotive Tech & Engineering'}</span>
+            </div>
           </div>
         </footer>
 
@@ -1396,7 +1789,7 @@ export default function Home() {
                   fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center'
                 }}
               >
-                ✕
+                <X size={18} />
               </button>
 
               <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
@@ -1405,13 +1798,13 @@ export default function Home() {
                   background: 'rgba(2, 132, 199, 0.15)', border: '1px solid rgba(2, 132, 199, 0.3)',
                   color: '#38bdf8', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.75rem'
                 }}>
-                  Portal de Clientes & Acceso Exclusivo
+                  {lang === 'es' ? 'Portal de Clientes & Acceso Exclusivo' : 'Client Portal & Exclusive Access'}
                 </div>
                 <h3 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#ffffff', margin: 0 }}>
-                  Solicitar Acceso a Aura
+                  {lang === 'es' ? 'Solicitar Acceso a Aura' : 'Request Access to Aura'}
                 </h3>
                 <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginTop: '0.5rem' }}>
-                  Completa tus datos para crear tu cuenta. Una vez aprobada por nuestro equipo, recibirás tus credenciales por correo electrónico.
+                  {lang === 'es' ? 'Completa tus datos para crear tu cuenta. Una vez aprobada por nuestro equipo, recibirás tus credenciales por correo electrónico.' : 'Complete your details to create your account. Once approved by our team, you will receive your credentials via email.'}
                 </p>
               </div>
 
@@ -1420,12 +1813,27 @@ export default function Home() {
                   textAlign: 'center', padding: '2rem 1rem', background: 'rgba(16, 185, 129, 0.12)',
                   border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '16px'
                 }}>
-                  <div style={{ fontSize: '48px', marginBottom: '1rem' }}>🎉</div>
+                  <div style={{
+                    width: '64px',
+                    height: '64px',
+                    borderRadius: '50%',
+                    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                    border: '2px solid #10b981',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 1.25rem',
+                    color: '#10b981'
+                  }}>
+                    <CheckCircle2 size={36} />
+                  </div>
                   <h4 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#10b981', margin: '0 0 0.75rem 0' }}>
-                    ¡Solicitud Enviada con Éxito!
+                    {lang === 'es' ? '¡Solicitud Enviada con Éxito!' : 'Request Successfully Submitted!'}
                   </h4>
                   <p style={{ color: '#cbd5e1', fontSize: '0.95rem', lineHeight: 1.6, margin: '0 0 1.5rem 0' }}>
-                    Hemos registrado tu solicitud para <strong>{accessForm.email}</strong>. Nuestro equipo administrador la revisará y recibirás tus accesos directos por correo electrónico una vez aprobada.
+                    {lang === 'es'
+                      ? <>Hemos registrado tu solicitud para <strong>{accessForm.email}</strong>. Nuestro equipo administrador la revisará y recibirás tus accesos directos por correo electrónico una vez aprobada.</>
+                      : <>We have received your application for <strong>{accessForm.email}</strong>. Our team will review it and you will receive your credentials via email once approved.</>}
                   </p>
                   <button
                     onClick={() => setIsAccessModalOpen(false)}
@@ -1435,7 +1843,7 @@ export default function Home() {
                       fontWeight: 700, cursor: 'pointer', fontSize: '0.95rem'
                     }}
                   >
-                    Entendido, Cerrar
+                    {lang === 'es' ? 'Entendido, Cerrar' : 'Got it, Close'}
                   </button>
                 </div>
               ) : (
@@ -1443,16 +1851,18 @@ export default function Home() {
                   {accessError && (
                     <div style={{
                       padding: '0.85rem 1rem', borderRadius: '10px', background: 'rgba(239, 68, 68, 0.15)',
-                      border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', fontSize: '0.9rem', fontWeight: 600
+                      border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', fontSize: '0.9rem', fontWeight: 600,
+                      display: 'flex', alignItems: 'center', gap: '0.5rem'
                     }}>
-                      ✕ {accessError}
+                      <AlertTriangle size={16} style={{ flexShrink: 0 }} />
+                      <span>{accessError}</span>
                     </div>
                   )}
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                     <div>
                       <label style={{ display: 'block', color: '#cbd5e1', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.4rem' }}>
-                        Nombre <span style={{ color: '#ef4444' }}>*</span>
+                        {lang === 'es' ? 'Nombre' : 'First Name'} <span style={{ color: '#ef4444' }}>*</span>
                       </label>
                       <input
                         type="text"
@@ -1465,7 +1875,7 @@ export default function Home() {
                     </div>
                     <div>
                       <label style={{ display: 'block', color: '#cbd5e1', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.4rem' }}>
-                        Apellido <span style={{ color: '#ef4444' }}>*</span>
+                        {lang === 'es' ? 'Apellido' : 'Last Name'} <span style={{ color: '#ef4444' }}>*</span>
                       </label>
                       <input
                         type="text"
@@ -1480,7 +1890,7 @@ export default function Home() {
 
                   <div>
                     <label style={{ display: 'block', color: '#cbd5e1', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.4rem' }}>
-                      Correo Electrónico <span style={{ color: '#ef4444' }}>*</span>
+                      {lang === 'es' ? 'Correo Electrónico' : 'Email Address'} <span style={{ color: '#ef4444' }}>*</span>
                     </label>
                     <input
                       type="email"
@@ -1495,7 +1905,7 @@ export default function Home() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                     <div>
                       <label style={{ display: 'block', color: '#cbd5e1', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.4rem' }}>
-                        Teléfono / WhatsApp
+                        {lang === 'es' ? 'Teléfono / WhatsApp' : 'Phone / WhatsApp'}
                       </label>
                       <input
                         type="tel"
@@ -1507,43 +1917,149 @@ export default function Home() {
                     </div>
                     <div>
                       <label style={{ display: 'block', color: '#cbd5e1', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.4rem' }}>
-                        Tipo de Perfil
+                        {lang === 'es' ? 'Tipo de Perfil' : 'Profile Type'}
                       </label>
                       <select
                         value={accessForm.role}
                         onChange={(e) => setAccessForm({ ...accessForm, role: e.target.value })}
                         style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '10px', background: 'rgba(2, 6, 23, 0.7)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', outline: 'none' }}
                       >
-                        <option value="Cliente">Cliente (Dueño de vehículo)</option>
-                        <option value="Asesor">Asesor / Colaborador</option>
+                        <option value="Cliente">{lang === 'es' ? 'Cliente (Dueño de vehículo)' : 'Client (Vehicle Owner)'}</option>
+                        <option value="Asesor">{lang === 'es' ? 'Asesor / Colaborador' : 'Advisor / Team Member'}</option>
                       </select>
                     </div>
                   </div>
 
                   {/* Sección de Vehículo Inicial */}
                   <div style={{ padding: '1.25rem', borderRadius: '14px', background: 'rgba(2, 132, 199, 0.08)', border: '1px solid rgba(2, 132, 199, 0.2)' }}>
-                    <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.95rem', color: '#38bdf8', fontWeight: 700 }}>
-                      🚗 Datos de tu Auto (Opcional)
+                    <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.95rem', color: '#38bdf8', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Car size={18} />
+                      <span>{lang === 'es' ? 'Datos de tu Auto (Opcional)' : 'Vehicle Details (Optional)'}</span>
                     </h4>
                     <p style={{ margin: '0 0 1rem 0', fontSize: '0.8rem', color: '#94a3b8' }}>
-                      Si los ingresas ahora, tu auto quedará automáticamente dado de alta en tu perfil al aprobarse tu cuenta.
+                      {lang === 'es' ? 'Si los ingresas ahora, tu auto quedará automáticamente dado de alta en tu perfil al aprobarse tu cuenta.' : 'If provided now, your vehicle will be registered immediately to your profile upon approval.'}
                     </p>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                      <input
-                        type="text"
-                        placeholder="Marca (ej. Honda, Toyota)"
-                        value={accessForm.vehicleBrand}
-                        onChange={(e) => setAccessForm({ ...accessForm, vehicleBrand: e.target.value })}
-                        style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '8px', background: 'rgba(2, 6, 23, 0.6)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', outline: 'none', fontSize: '0.85rem' }}
-                      />
-                      <input
-                        type="text"
-                        placeholder="Modelo (ej. Civic, RAV4)"
-                        value={accessForm.vehicleModel}
-                        onChange={(e) => setAccessForm({ ...accessForm, vehicleModel: e.target.value })}
-                        style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '8px', background: 'rgba(2, 6, 23, 0.6)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', outline: 'none', fontSize: '0.85rem' }}
-                      />
+                      {/* Marca Selector */}
+                      <div>
+                        <select
+                          value={accessSelectedBrand}
+                          onChange={(e) => {
+                            const b = e.target.value;
+                            setAccessSelectedBrand(b);
+                            if (b === 'OTRA') {
+                              setAccessForm((prev) => ({ ...prev, vehicleBrand: '', vehicleModel: '' }));
+                              setAccessSelectedModel('OTRO');
+                            } else {
+                              setAccessForm((prev) => ({ ...prev, vehicleBrand: b, vehicleModel: '' }));
+                              setAccessSelectedModel('');
+                            }
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '0.65rem 0.85rem',
+                            borderRadius: '8px',
+                            background: 'rgba(2, 6, 23, 0.8)',
+                            border: '1px solid rgba(255,255,255,0.15)',
+                            color: '#fff',
+                            outline: 'none',
+                            fontSize: '0.85rem',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <option value="" style={{ background: '#0b1220', color: '#fff' }}>
+                            {lang === 'es' ? '-- Marca --' : '-- Brand --'}
+                          </option>
+                          {Object.keys(CAR_CATALOG).map((brand) => (
+                            <option key={brand} value={brand} style={{ background: '#0b1220', color: '#fff' }}>
+                              {brand}
+                            </option>
+                          ))}
+                          <option value="OTRA" style={{ background: '#0b1220', color: '#38bdf8', fontWeight: 600 }}>
+                            {lang === 'es' ? 'Otra marca (escribir)...' : 'Other brand (type)...'}
+                          </option>
+                        </select>
+
+                        {accessSelectedBrand === 'OTRA' && (
+                          <input
+                            type="text"
+                            autoFocus
+                            placeholder={lang === 'es' ? 'Escribe la marca...' : 'Type brand...'}
+                            value={accessForm.vehicleBrand}
+                            onChange={(e) => setAccessForm({ ...accessForm, vehicleBrand: e.target.value })}
+                            style={{ width: '100%', marginTop: '0.5rem', padding: '0.6rem 0.85rem', borderRadius: '8px', background: 'rgba(2, 6, 23, 0.9)', border: '1px solid #38bdf8', color: '#fff', outline: 'none', fontSize: '0.85rem' }}
+                          />
+                        )}
+                      </div>
+
+                      {/* Modelo Selector */}
+                      <div>
+                        {accessSelectedBrand === 'OTRA' ? (
+                          <input
+                            type="text"
+                            placeholder={lang === 'es' ? 'Escribe el modelo...' : 'Type model...'}
+                            value={accessForm.vehicleModel}
+                            onChange={(e) => setAccessForm({ ...accessForm, vehicleModel: e.target.value })}
+                            style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '8px', background: 'rgba(2, 6, 23, 0.8)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', outline: 'none', fontSize: '0.85rem' }}
+                          />
+                        ) : (
+                          <>
+                            <select
+                              disabled={!accessSelectedBrand}
+                              value={accessSelectedModel}
+                              onChange={(e) => {
+                                const m = e.target.value;
+                                setAccessSelectedModel(m);
+                                if (m === 'OTRO') {
+                                  setAccessForm((prev) => ({ ...prev, vehicleModel: '' }));
+                                } else {
+                                  setAccessForm((prev) => ({ ...prev, vehicleModel: m }));
+                                }
+                              }}
+                              style={{
+                                width: '100%',
+                                padding: '0.65rem 0.85rem',
+                                borderRadius: '8px',
+                                background: 'rgba(2, 6, 23, 0.8)',
+                                border: '1px solid rgba(255,255,255,0.15)',
+                                color: '#fff',
+                                outline: 'none',
+                                fontSize: '0.85rem',
+                                cursor: !accessSelectedBrand ? 'not-allowed' : 'pointer',
+                                opacity: !accessSelectedBrand ? 0.6 : 1
+                              }}
+                            >
+                              <option value="" style={{ background: '#0b1220', color: '#fff' }}>
+                                {!accessSelectedBrand
+                                  ? (lang === 'es' ? '-- Selecciona marca --' : '-- Select brand --')
+                                  : (lang === 'es' ? '-- Modelo --' : '-- Model --')}
+                              </option>
+                              {accessSelectedBrand && CAR_CATALOG[accessSelectedBrand]?.map((model) => (
+                                <option key={model} value={model} style={{ background: '#0b1220', color: '#fff' }}>
+                                  {model}
+                                </option>
+                              ))}
+                              {accessSelectedBrand && (
+                                <option value="OTRO" style={{ background: '#0b1220', color: '#38bdf8', fontWeight: 600 }}>
+                                  {lang === 'es' ? 'Otro modelo (escribir)...' : 'Other model (type)...'}
+                                </option>
+                              )}
+                            </select>
+
+                            {accessSelectedModel === 'OTRO' && (
+                              <input
+                                type="text"
+                                autoFocus
+                                placeholder={lang === 'es' ? 'Escribe el modelo...' : 'Type model...'}
+                                value={accessForm.vehicleModel}
+                                onChange={(e) => setAccessForm({ ...accessForm, vehicleModel: e.target.value })}
+                                style={{ width: '100%', marginTop: '0.5rem', padding: '0.6rem 0.85rem', borderRadius: '8px', background: 'rgba(2, 6, 23, 0.9)', border: '1px solid #38bdf8', color: '#fff', outline: 'none', fontSize: '0.85rem' }}
+                              />
+                            )}
+                          </>
+                        )}
+                      </div>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
