@@ -29,7 +29,9 @@ import {
   Eye,
   EyeOff,
   AlertCircle,
-  Lock
+  Lock,
+  User as UserIcon,
+  Mail
 } from 'lucide-react';
 import { safeFetch } from '../../lib/api-config';
 
@@ -102,6 +104,105 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       }, 1000);
     } else {
       setPasswordChangeError(error || 'Ocurrió un error al actualizar la contraseña. Por favor intenta de nuevo.');
+    }
+  };
+
+  // Self-service User Profile & Password Modal State
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  const [showProfilePassword, setShowProfilePassword] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
+
+  const handleOpenProfileModal = () => {
+    if (user) {
+      setProfileForm({
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        email: user.email || '',
+        newPassword: '',
+        confirmPassword: '',
+      });
+      setProfileError(null);
+      setProfileSuccess(null);
+      setIsProfileModalOpen(true);
+    }
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setProfileError(null);
+    setProfileSuccess(null);
+
+    if (!profileForm.firstName.trim()) {
+      setProfileError('El nombre no puede estar vacío.');
+      return;
+    }
+
+    if (profileForm.newPassword) {
+      if (profileForm.newPassword.trim().length < 6) {
+        setProfileError('La nueva contraseña debe tener al menos 6 caracteres.');
+        return;
+      }
+      if (profileForm.newPassword.trim() !== profileForm.confirmPassword.trim()) {
+        setProfileError('Las contraseñas no coinciden.');
+        return;
+      }
+    }
+
+    setProfileSaving(true);
+
+    try {
+      // 1. Update basic user data (firstName, lastName, email)
+      const updatePayload: Record<string, string> = {
+        firstName: profileForm.firstName.trim(),
+        lastName: profileForm.lastName.trim(),
+      };
+
+      if (profileForm.email.trim() && profileForm.email.trim().toLowerCase() !== user?.email?.toLowerCase()) {
+        updatePayload.email = profileForm.email.trim().toLowerCase();
+      }
+
+      if (profileForm.newPassword.trim()) {
+        updatePayload.password = profileForm.newPassword.trim();
+      }
+
+      const { ok, error } = await safeFetch<Record<string, unknown>>(`/users/${user?.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatePayload),
+      });
+
+      if (!ok) {
+        setProfileError(error || 'No se pudieron actualizar tus datos.');
+        setProfileSaving(false);
+        return;
+      }
+
+      // Update auth context state with fresh user data
+      updateUser({
+        firstName: profileForm.firstName.trim(),
+        lastName: profileForm.lastName.trim(),
+        email: updatePayload.email || user?.email,
+      });
+
+      setProfileSuccess('¡Tus datos y contraseña se han actualizado exitosamente!');
+      setTimeout(() => {
+        setIsProfileModalOpen(false);
+        setProfileSuccess(null);
+      }, 1500);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error inesperado al guardar los cambios.';
+      setProfileError(msg);
+    } finally {
+      setProfileSaving(false);
     }
   };
 
@@ -449,26 +550,44 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </span>
           </button>
 
-          {/* User Avatar Badge */}
-          <div style={{ 
-            display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0.75rem', 
-            justifyContent: isDesktopCollapsed ? 'center' : 'space-between',
-            borderRadius: '14px', backgroundColor: 'rgba(0,0,0,0.03)', border: '1px solid var(--glass-border)',
-            overflow: 'hidden'
-          }}>
+          {/* User Avatar Badge (Clickable to edit profile & change password) */}
+          <div 
+            onClick={handleOpenProfileModal}
+            title="Haz clic para modificar tu nombre, datos y contraseña"
+            style={{ 
+              display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.55rem 0.75rem', 
+              justifyContent: isDesktopCollapsed ? 'center' : 'space-between',
+              borderRadius: '14px', backgroundColor: 'rgba(0,0,0,0.03)', border: '1px solid var(--glass-border)',
+              overflow: 'hidden', cursor: 'pointer', transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.borderColor = '#0284c7';
+              e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(56, 189, 248, 0.08)' : 'rgba(2, 132, 199, 0.06)';
+              e.currentTarget.style.transform = 'translateY(-1px)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.borderColor = 'var(--glass-border)';
+              e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.03)';
+              e.currentTarget.style.transform = 'none';
+            }}
+          >
             <div className="sidebar-user-info" style={{ display: isDesktopCollapsed ? 'none' : 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
               <span style={{ fontSize: '13px', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--text-primary)' }}>{user?.firstName} {user?.lastName}</span>
-              <span style={{ fontSize: '11px', color: '#0284c7', fontWeight: 600, textTransform: 'uppercase' }}>
-                {user?.roles?.[0]?.role?.name || 'Usuario'}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ fontSize: '11px', color: '#0284c7', fontWeight: 700, textTransform: 'uppercase' }}>
+                  {user?.roles?.[0]?.role?.name || 'Usuario'}
+                </span>
+                <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>• Editar</span>
+              </div>
             </div>
             
             <div style={{
-              width: '32px', height: '32px', minWidth: '32px', borderRadius: '50%',
+              width: '34px', height: '34px', minWidth: '34px', borderRadius: '50%',
               background: 'linear-gradient(135deg, #0284c7 0%, #06b6d4 100%)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: '#ffffff', fontWeight: 800, fontSize: '13px',
-              boxShadow: '0 2px 10px rgba(56, 189, 248, 0.3)'
+              color: '#ffffff', fontWeight: 800, fontSize: '14px',
+              boxShadow: '0 2px 10px rgba(56, 189, 248, 0.35)',
+              border: '2px solid rgba(255,255,255,0.2)'
             }}>
               {user?.firstName?.charAt(0) || 'U'}
             </div>
@@ -928,6 +1047,343 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </div>
       )}
+
+      {/* --- MODAL PARA MODIFICAR PERFIL, DATOS Y CONTRASEÑA --- */}
+      {isProfileModalOpen && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 99999,
+          backgroundColor: 'rgba(7, 10, 19, 0.82)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '16px'
+        }}>
+          <div className="glass-card" style={{
+            width: '100%',
+            maxWidth: '520px',
+            maxHeight: '92vh',
+            overflowY: 'auto',
+            padding: '2rem',
+            position: 'relative',
+            borderRadius: '24px',
+            border: '1px solid rgba(56, 189, 248, 0.3)',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.5)',
+            background: theme === 'dark' ? 'rgba(11, 18, 32, 0.98)' : 'rgba(255, 255, 255, 0.98)'
+          }}>
+            {/* Close Button */}
+            <button
+              onClick={() => setIsProfileModalOpen(false)}
+              style={{
+                position: 'absolute',
+                top: '1.25rem',
+                right: '1.25rem',
+                background: 'rgba(0,0,0,0.06)',
+                border: 'none',
+                color: 'var(--text-secondary)',
+                width: '34px',
+                height: '34px',
+                borderRadius: '50%',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <X size={18} />
+            </button>
+
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.75rem' }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '16px',
+                background: 'linear-gradient(135deg, #0284c7 0%, #06b6d4 100%)',
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 15px rgba(2, 132, 199, 0.35)',
+                fontWeight: 800,
+                fontSize: '20px'
+              }}>
+                {user?.firstName?.charAt(0) || 'U'}
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.35rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
+                  Mi Cuenta & Datos
+                </h3>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                  Modifica tu nombre, correo o actualiza tu contraseña de acceso.
+                </p>
+              </div>
+            </div>
+
+            {/* Notifications */}
+            {profileError && (
+              <div style={{
+                padding: '0.85rem 1rem',
+                borderRadius: '12px',
+                backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                color: '#ef4444',
+                fontSize: '0.88rem',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                marginBottom: '1.25rem'
+              }}>
+                <AlertCircle size={17} style={{ flexShrink: 0 }} />
+                <span>{profileError}</span>
+              </div>
+            )}
+
+            {profileSuccess && (
+              <div style={{
+                padding: '0.85rem 1rem',
+                borderRadius: '12px',
+                backgroundColor: 'rgba(16, 185, 129, 0.12)',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                color: '#10b981',
+                fontSize: '0.88rem',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                marginBottom: '1.25rem'
+              }}>
+                <CheckCircle2 size={17} style={{ flexShrink: 0 }} />
+                <span>{profileSuccess}</span>
+              </div>
+            )}
+
+            {/* Form */}
+            <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              
+              {/* Sección de Datos Personales */}
+              <div style={{
+                background: 'rgba(0,0,0,0.02)',
+                border: '1px solid var(--glass-border)',
+                borderRadius: '16px',
+                padding: '1.25rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1rem'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#0284c7', fontSize: '0.85rem', fontWeight: 700 }}>
+                  <UserIcon size={15} />
+                  <span>Información del Usuario</span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-secondary)' }}>
+                      Nombre <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={profileForm.firstName}
+                      onChange={(e) => setProfileForm({ ...profileForm, firstName: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem 0.9rem',
+                        borderRadius: '10px',
+                        border: '1px solid var(--glass-border)',
+                        background: 'rgba(0,0,0,0.03)',
+                        color: 'var(--text-primary)',
+                        fontSize: '0.9rem',
+                        outline: 'none'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-secondary)' }}>
+                      Apellido
+                    </label>
+                    <input
+                      type="text"
+                      value={profileForm.lastName}
+                      onChange={(e) => setProfileForm({ ...profileForm, lastName: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem 0.9rem',
+                        borderRadius: '10px',
+                        border: '1px solid var(--glass-border)',
+                        background: 'rgba(0,0,0,0.03)',
+                        color: 'var(--text-primary)',
+                        fontSize: '0.9rem',
+                        outline: 'none'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-secondary)' }}>
+                    Correo Electrónico
+                  </label>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <Mail size={16} style={{ position: 'absolute', left: '12px', color: 'var(--text-secondary)' }} />
+                    <input
+                      type="email"
+                      required
+                      value={profileForm.email}
+                      onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem 0.9rem 0.75rem 2.4rem',
+                        borderRadius: '10px',
+                        border: '1px solid var(--glass-border)',
+                        background: 'rgba(0,0,0,0.03)',
+                        color: 'var(--text-primary)',
+                        fontSize: '0.9rem',
+                        outline: 'none'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '0.25rem' }}>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Rol de cuenta:</span>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0284c7', background: 'rgba(2, 132, 199, 0.12)', padding: '0.2rem 0.6rem', borderRadius: '8px' }}>
+                    {user?.roles?.[0]?.role?.name || 'Cliente'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Sección de Cambio de Contraseña */}
+              <div style={{
+                background: 'rgba(0,0,0,0.02)',
+                border: '1px solid var(--glass-border)',
+                borderRadius: '16px',
+                padding: '1.25rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1rem'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#38bdf8', fontSize: '0.85rem', fontWeight: 700 }}>
+                  <KeyRound size={15} />
+                  <span>Cambiar Contraseña (Opcional)</span>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-secondary)' }}>
+                    Nueva Contraseña
+                  </label>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <input
+                      type={showProfilePassword ? 'text' : 'password'}
+                      placeholder="Dejar vacío para no cambiarla"
+                      value={profileForm.newPassword}
+                      onChange={(e) => setProfileForm({ ...profileForm, newPassword: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem 2.5rem 0.75rem 0.9rem',
+                        borderRadius: '10px',
+                        border: '1px solid var(--glass-border)',
+                        background: 'rgba(0,0,0,0.03)',
+                        color: 'var(--text-primary)',
+                        fontSize: '0.9rem',
+                        outline: 'none'
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowProfilePassword(!showProfilePassword)}
+                      style={{
+                        position: 'absolute',
+                        right: '12px',
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--text-secondary)',
+                        cursor: 'pointer',
+                        padding: 0
+                      }}
+                    >
+                      {showProfilePassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                    </button>
+                  </div>
+                </div>
+
+                {profileForm.newPassword && (
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-secondary)' }}>
+                      Confirmar Nueva Contraseña <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <input
+                      type={showProfilePassword ? 'text' : 'password'}
+                      required
+                      placeholder="Repite la nueva contraseña"
+                      value={profileForm.confirmPassword}
+                      onChange={(e) => setProfileForm({ ...profileForm, confirmPassword: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem 0.9rem',
+                        borderRadius: '10px',
+                        border: profileForm.newPassword && profileForm.confirmPassword && profileForm.newPassword !== profileForm.confirmPassword ? '1px solid #ef4444' : '1px solid var(--glass-border)',
+                        background: 'rgba(0,0,0,0.03)',
+                        color: 'var(--text-primary)',
+                        fontSize: '0.9rem',
+                        outline: 'none'
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsProfileModalOpen(false)}
+                  style={{
+                    padding: '0.75rem 1.4rem',
+                    borderRadius: '12px',
+                    border: '1px solid var(--glass-border)',
+                    background: 'transparent',
+                    color: 'var(--text-primary)',
+                    fontWeight: 600,
+                    fontSize: '0.9rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={profileSaving}
+                  style={{
+                    padding: '0.75rem 1.75rem',
+                    borderRadius: '12px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #0284c7 0%, #06b6d4 100%)',
+                    color: '#fff',
+                    fontWeight: 700,
+                    fontSize: '0.9rem',
+                    cursor: profileSaving ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 4px 15px rgba(2, 132, 199, 0.4)',
+                    opacity: profileSaving ? 0.7 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  <Lock size={15} />
+                  <span>{profileSaving ? 'Guardando...' : 'Guardar Cambios'}</span>
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

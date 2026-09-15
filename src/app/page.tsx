@@ -271,6 +271,14 @@ export default function Home() {
       formPhone: 'Teléfono / WhatsApp de Contacto *',
       formVehicle: 'Auto (Marca, Modelo y Año) *',
       formServiceType: 'Tipo de Servicio',
+      services: [
+        { id: 'Mantenimiento Preventivo a Domicilio', label: 'Mantenimiento Preventivo a Domicilio' },
+        { id: 'Diagnóstico por Escáner / Check Engine', label: 'Diagnóstico por Escáner / Check Engine' },
+        { id: 'Cambio de Aceite y Filtros', label: 'Cambio de Aceite y Filtros' },
+        { id: 'Revisión de Frenos y Suspensión', label: 'Revisión de Frenos y Suspensión' },
+        { id: 'Auxilio Vial / Cambio de Batería', label: 'Auxilio Vial / Cambio de Batería' },
+        { id: 'Inspección Pre-Compra de Vehículo', label: 'Inspección Pre-Compra de Vehículo' },
+      ],
       formDate: 'Fecha Deseada',
       formAddress: 'Ubicación / Dirección *',
       formNotes: 'Notas Adicionales / Síntomas del Auto',
@@ -313,6 +321,14 @@ export default function Home() {
       formPhone: 'Contact Phone / WhatsApp *',
       formVehicle: 'Vehicle (Make, Model, Year) *',
       formServiceType: 'Service Type',
+      services: [
+        { id: 'Mantenimiento Preventivo a Domicilio', label: 'Preventive Mobile Maintenance' },
+        { id: 'Diagnóstico por Escáner / Check Engine', label: 'Computerized OBD-II / Check Engine Diagnostic' },
+        { id: 'Cambio de Aceite y Filtros', label: 'Oil & Filter Replacement' },
+        { id: 'Revisión de Frenos y Suspensión', label: 'Brake & Suspension Inspection' },
+        { id: 'Auxilio Vial / Cambio de Batería', label: 'Roadside Assistance / Battery Replacement' },
+        { id: 'Inspección Pre-Compra de Vehículo', label: 'Pre-Purchase Vehicle Inspection' },
+      ],
       formDate: 'Desired Date',
       formAddress: 'Service Address / Location *',
       formNotes: 'Additional Notes / Vehicle Symptoms',
@@ -1334,12 +1350,11 @@ export default function Home() {
                           backdropFilter: 'blur(10px)'
                         }}
                       >
-                        <option value="Mantenimiento Preventivo a Domicilio" style={{ background: theme === 'light' ? '#ffffff' : '#0f172a', color: theme === 'light' ? '#0f172a' : '#ffffff' }}>Mantenimiento Preventivo a Domicilio</option>
-                        <option value="Diagnóstico por Escáner / Check Engine" style={{ background: theme === 'light' ? '#ffffff' : '#0f172a', color: theme === 'light' ? '#0f172a' : '#ffffff' }}>Diagnóstico por Escáner / Check Engine</option>
-                        <option value="Cambio de Aceite y Filtros" style={{ background: theme === 'light' ? '#ffffff' : '#0f172a', color: theme === 'light' ? '#0f172a' : '#ffffff' }}>Cambio de Aceite y Filtros</option>
-                        <option value="Revisión de Frenos y Suspensión" style={{ background: theme === 'light' ? '#ffffff' : '#0f172a', color: theme === 'light' ? '#0f172a' : '#ffffff' }}>Revisión de Frenos y Suspensión</option>
-                        <option value="Auxilio Vial / Cambio de Batería" style={{ background: theme === 'light' ? '#ffffff' : '#0f172a', color: theme === 'light' ? '#0f172a' : '#ffffff' }}>Auxilio Vial / Cambio de Batería</option>
-                        <option value="Inspección Pre-Compra de Vehículo" style={{ background: theme === 'light' ? '#ffffff' : '#0f172a', color: theme === 'light' ? '#0f172a' : '#ffffff' }}>Inspección Pre-Compra de Vehículo</option>
+                        {currentT.services.map((s) => (
+                          <option key={s.id} value={s.id} style={{ background: theme === 'light' ? '#ffffff' : '#0f172a', color: theme === 'light' ? '#0f172a' : '#ffffff' }}>
+                            {s.label}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>
